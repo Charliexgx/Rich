@@ -61,3 +61,5 @@ credentials.json
 !sites/17-tropical/daily.json
 !sites/17-tropical/daily_snapshots.json
 !sites/17-tropical/data_embedded.js
+# 临时日志
+logs.txt
