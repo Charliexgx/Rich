@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.mypy_cache/
+
+# 编辑器 / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 系统文件
+$RECYCLE.BIN/
+
+# 日志
+*.log
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*.orig
+
+# 环境配置
+.env
+.env.local
+.env.*.local
+
+# Node（备用）
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 构建产物（未来可能扩展）
+dist/
+build/
+out/
+
+# 敏感信息（用户提到过 GitHub 上传，注意保护 token）
+config.ini
+credentials.json
+*token*
+*secret*
+
+# 但保留核心数据文件（项目演示需要）
+!sites/17-tropical/data.json
+!sites/17-tropical/daily.json
+!sites/17-tropical/daily_snapshots.json
+!sites/17-tropical/data_embedded.js
+# 临时日志
+logs.txt

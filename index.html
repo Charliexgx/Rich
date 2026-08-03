@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>波段战法 · 每日实时监控</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+  /* 白天=热带沙滩主题 */
+  background:linear-gradient(180deg,#7fd8e8 0%,#a5e3ee 40%,#d8f3e0 100%);
+  color:#1d3a2a;line-height:1.7;
+  min-height:100vh;
+  transition:background .6s ease,color .6s ease;
+  position:relative;overflow-x:hidden;
+}
+/* 海浪背景（白天） */
+body::before{content:'';position:fixed;bottom:0;left:0;right:0;height:35vh;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 200% 80% at 50% 100%,#2ec76e 0%,transparent 60%),
+    linear-gradient(180deg,transparent,rgba(46,199,110,.25));
+  clip-path:polygon(0 60%,8% 40%,20% 65%,35% 30%,50% 60%,65% 35%,80% 62%,92% 45%,100% 58%,100% 100%,0 100%);
+  animation:waveMove 8s ease-in-out infinite;
+}
+@keyframes waveMove{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+/* 太阳 */
+body::after{content:'☀️';position:fixed;top:24px;right:40px;font-size:3.6rem;z-index:0;
+  animation:sunSpin 40s linear infinite;opacity:.9}
+@keyframes sunSpin{to{transform:rotate(360deg)}}
+
+/* 夜间 = 潜水摸鱼主题 */
+body.night{background:linear-gradient(180deg,#02141f 0%,#04202e 40%,#063348 75%,#0a4a5e 100%);color:#d8f6f2}
+body.night::before{background:
+  radial-gradient(ellipse at 50% 100%,rgba(46,199,110,.18),transparent 60%),
+  linear-gradient(180deg,transparent,rgba(78,238,234,.15));
+  clip-path:polygon(0 65%,10% 50%,22% 70%,38% 45%,55% 68%,72% 48%,88% 65%,100% 55%,100% 100%,0 100%);
+  animation:waveMove 11s ease-in-out infinite reverse}
+body.night::after{content:'🌙';opacity:.8}
+@keyframes waveMove{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+/* 气泡（夜间专属） */
+.bubbles{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .6s}
+body.night .bubbles{opacity:.7}
+.bubbles i{position:absolute;bottom:-40px;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.8),rgba(126,242,232,.2));
+  animation:bubbleRise 8s linear infinite}
+.bubbles i:nth-child(1){left:8%;animation-delay:0s;width:8px;height:8px}
+.bubbles i:nth-child(2){left:22%;animation-delay:2s;width:14px;height:14px}
+.bubbles i:nth-child(3){left:38%;animation-delay:4s;width:10px;height:10px}
+.bubbles i:nth-child(4){left:55%;animation-delay:1s;width:18px;height:18px}
+.bubbles i:nth-child(5){left:72%;animation-delay:3s;width:8px;height:8px}
+.bubbles i:nth-child(6){left:88%;animation-delay:5s;width:12px;height:12px}
+@keyframes bubbleRise{
+  0%{transform:translate(0,0) scale(.5);opacity:0}
+  10%{opacity:.8}
+  100%{transform:translate(20px,-110vh) scale(1);opacity:0}
+}
+
+.wrap{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:clamp(20px,5vw,50px)}
+header{text-align:center;margin-bottom:28px}
+header h1{font-size:clamp(1.8rem,5.5vw,2.8rem);font-weight:800;letter-spacing:1px}
+header .sub{font-size:.9rem;margin-top:8px;opacity:.75;font-weight:700}
+/* 主温度卡（直入主题：显示实时数据） */
+.hero{
+  border-radius:24px;padding:clamp(20px,4vw,36px);margin-bottom:24px;
+  backdrop-filter:blur(8px);position:relative;overflow:hidden;
+  transition:all .6s ease;
+}
+body.day .hero{background:rgba(255,253,247,.95);box-shadow:0 12px 0 rgba(31,165,90,.32);border:4px solid #2ec76e}
+body.night .hero{background:rgba(6,45,62,.85);box-shadow:0 0 40px rgba(78,238,234,.15);border:2px solid rgba(78,238,234,.4)}
+.hero-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+.hero-title{font-size:1.4rem;font-weight:900;letter-spacing:1px}
+body.day .hero-title{color:#1fa55a}
+body.night .hero-title{color:#7ef2e8}
+.theme-toggle{display:flex;align-items:center;gap:6px;font-size:.85rem;font-weight:700;padding:8px 16px;border-radius:50px;cursor:pointer;border:none;transition:all .3s}
+body.day .theme-toggle{background:linear-gradient(90deg,#ffe58a,#ffd23f);color:#1d3a2a}
+body.night .theme-toggle{background:linear-gradient(90deg,#04202e,#0a4a5e);color:#7ef2e8;border:1px solid rgba(126,242,232,.3)}
+.theme-toggle .ind{font-size:1.1rem}
+/* 温度 + 行情紧凑展示 */
+.data-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:14px}
+.stat{text-align:center;padding:12px 8px;border-radius:16px;transition:all .3s}
+body.day .stat{background:rgba(46,199,110,.08);border:1px solid rgba(31,165,90,.2)}
+body.night .stat{background:rgba(78,238,234,.06);border:1px solid rgba(78,238,234,.18)}
+.stat .n{font-size:1.6rem;font-weight:900;font-family:'DIN','Bahnschrift',sans-serif;line-height:1.1}
+.stat .l{font-size:.7rem;opacity:.7;margin-top:4px;letter-spacing:1px}
+.stat .c{font-size:.85rem;font-weight:800;margin-top:2px}
+.stat .c.up{color:#e85d4a}
+body.night .stat .c.up{color:#ff8f7a}
+.stat .c.dn{color:#2ec76e}
+body.night .stat .c.dn{color:#7ef2e8}
+/* 主题进度条 */
+.theme-progress{margin-top:22px;padding:14px 18px;border-radius:18px;position:relative}
+body.day .theme-progress{background:linear-gradient(180deg,#e0f5fb,#d8f3e0)}
+body.night .theme-progress{background:linear-gradient(180deg,rgba(8,32,50,.85),rgba(10,74,94,.65));border:1px solid rgba(78,238,234,.2)}
+.tp-head{display:flex;justify-content:space-between;font-size:.75rem;font-weight:800;margin-bottom:6px;letter-spacing:1px}
+body.day .tp-head{color:#5a7a48}
+body.night .tp-head{color:#8fd6cf}
+.tp-bar{height:24px;border-radius:12px;overflow:hidden;position:relative}
+/* 白天海浪条 */
+body.day .tp-bar{background:linear-gradient(180deg,#bde5f0,#e3f3e8);border:2px solid #2ec76e}
+body.day .tp-bar svg{position:absolute;inset:0;width:100%;height:100%}
+body.day .tp-bar .wave{display:none}
+/* 夜间深海条 */
+body.night .tp-bar{background:linear-gradient(180deg,#02141f,#0a4a5e);border:1px solid rgba(78,238,234,.3)}
+body.night .tp-bar .deco{position:absolute;inset:0}
+/* 通用进度填充 */
+.tp-fill{position:absolute;top:0;bottom:0;left:0;width:0;border-radius:inherit;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+body.day .tp-fill{background:linear-gradient(90deg,#ffd23f,#ff7a59,#e85d4a);box-shadow:inset 0 -3px 0 rgba(0,0,0,.1)}
+body.night .tp-fill{background:linear-gradient(180deg,#4deeea,#7ef2e8);box-shadow:0 0 12px rgba(126,242,232,.6)}
+/* 标记点 */
+.tp-marker{position:absolute;top:-4px;bottom:-4px;width:2px;background:rgba(255,255,255,.6)}
+/* 进入按钮 */
+.enter{display:block;text-align:center;background:linear-gradient(135deg,#ff7a59,#e85d4a);color:#fff;font-size:1.4rem;font-weight:900;padding:22px 0;border-radius:50px;text-decoration:none;box-shadow:0 10px 0 #d9532f;transition:all .2s;letter-spacing:2px}
+body.night .enter{background:linear-gradient(135deg,#7ef2e8,#4deeea);color:#02141f;box-shadow:0 10px 0 rgba(78,238,234,.3)}
+.enter:hover{transform:translateY(-3px);box-shadow:0 13px 0 #d9532f}
+body.night .enter:hover{box-shadow:0 13px 0 rgba(78,238,234,.3)}
+.enter:active{transform:translateY(4px);box-shadow:0 6px 0 #d9532f}
+.enter small{display:block;font-size:.85rem;font-weight:700;opacity:.85;margin-top:4px;letter-spacing:1px}
+/* 时间戳 */
+.ts{text-align:center;margin-top:16px;font-size:.78rem;opacity:.7;font-weight:700}
+</style>
+</head>
+<body class="day">
+<!-- 夜间气泡装饰 -->
+<div class="bubbles"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+<div class="wrap">
+  <header>
+    <h1>波段战法 · 每日实时监控</h1>
+    <div class="sub" id="headerSub">多市场观察 · 新浪hq实时 + AKShare日线 · 3570建仓 / 3221止盈</div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-head">
+      <div class="hero-title">🌊 热带沙滩 · 潜水摸鱼</div>
+      <button class="theme-toggle" id="themeToggle">
+        <span class="ind" id="themeInd">☀️</span><span id="themeText">白天模式</span>
+      </button>
+    </div>
+
+    <!-- 实时数据紧凑展示 -->
+    <div class="data-strip" id="dataStrip">
+      <div class="stat"><div class="n" id="dTemp">--</div><div class="l">市场温度</div><div class="c" id="dTempState">--</div></div>
+      <div class="stat"><div class="n" id="dSH">--</div><div class="l">上证</div><div class="c" id="dSHC">--</div></div>
+      <div class="stat"><div class="n" id="dHSI">--</div><div class="l">恒生</div><div class="c" id="dHSIC">--</div></div>
+      <div class="stat"><div class="n" id="dIXIC">--</div><div class="l">纳指</div><div class="c" id="dIXICC">--</div></div>
+      <div class="stat"><div class="n" id="dUp">--</div><div class="l">上涨</div><div class="c" id="dUpPct">--</div></div>
+      <div class="stat"><div class="n" id="dDn">--</div><div class="l">下跌</div><div class="c" id="dDnPct">--</div></div>
+    </div>
+
+    <!-- 主题进度条（动态海浪 / 深海潜水） -->
+    <div class="theme-progress">
+      <div class="tp-head">
+        <span id="tpLeft">市场活跃度</span>
+        <span id="tpRight">— / —</span>
+      </div>
+      <div class="tp-bar" id="tpBar">
+        <!-- 白天海浪 SVG（叠加在进度上） -->
+        <svg class="day-wave" viewBox="0 0 100 24" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="wave-pattern" x="0" y="0" width="100" height="24" patternUnits="userSpaceOnUse">
+              <path d="M0,12 Q25,4 50,12 T100,12" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="0.5">
+                <animate attributeName="d" dur="3s" repeatCount="indefinite"
+                  values="M0,12 Q25,4 50,12 T100,12;M0,12 Q25,20 50,12 T100,12;M0,12 Q25,4 50,12 T100,12"/>
+              </path>
+            </pattern>
+          </defs>
+          <rect id="waveFill" x="0" y="0" width="100%" height="24" fill="url(#wave-pattern)" style="display:none"/>
+        </svg>
+        <!-- 进度填充 -->
+        <div class="tp-fill" id="tpFill"></div>
+        <!-- 标记点（温和区） -->
+        <div class="tp-marker" style="left:52%" title="温和区起点"></div>
+        <div class="tp-marker" style="left:60%" title="温和区终点"></div>
+      </div>
+    </div>
+  </div>
+
+  <a class="enter" href="sites/17-tropical/index.html">进入监控系统 🏄<small>波段沙滩监控站 · 每日09:25-09:45早盘检测</small></a>
+
+  <div class="ts" id="tsLine">实时数据加载中...</div>
+</div>
+
+<script>
+/* ====== 主题切换 ====== */
+const body = document.body;
+const themeToggle = document.getElementById('themeToggle');
+const themeInd = document.getElementById('themeInd');
+const themeText = document.getElementById('themeText');
+const savedMode = localStorage.getItem('bw_index_mode') || 'day';
+applyTheme(savedMode);
+
+themeToggle.addEventListener('click', () => {
+  const next = body.classList.contains('night') ? 'day' : 'night';
+  applyTheme(next);
+  localStorage.setItem('bw_index_mode', next);
+});
+
+function applyTheme(mode) {
+  body.classList.toggle('night', mode === 'night');
+  themeInd.textContent = mode === 'night' ? '🌙' : '☀️';
+  themeText.textContent = mode === 'night' ? '夜间模式' : '白天模式';
+}
+
+/* ====== 实时数据加载 ====== */
+async function loadData() {
+  try {
+    const res = await fetch('sites/17-tropical/data.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('data.json 不存在');
+    const d = await res.json();
+    renderHero(d);
+    document.getElementById('tsLine').textContent = '数据更新 · ' + (d.timestamp || '—') + ' · 数据源：' + (d.source || '—');
+  } catch (e) {
+    document.getElementById('tsLine').textContent = '数据加载失败：' + e.message;
+  }
+}
+
+function renderHero(d) {
+  const b = d.marketBreadth || {};
+  document.getElementById('dTemp').textContent = b.temperature?.toFixed(2) ?? '--';
+  const ok = b.temperature >= 1.30 && b.temperature <= 1.50;
+  document.getElementById('dTempState').textContent = ok ? '温和上涨' : (b.temperature < 1.30 ? '热度不足' : '过热警惕');
+  document.getElementById('dTempState').className = 'c ' + (ok ? 'up' : 'dn');
+
+  document.getElementById('dUp').textContent = b.up?.toLocaleString() ?? '--';
+  document.getElementById('dUpPct').textContent = (b.upPct ?? '--') + '%';
+  document.getElementById('dDn').textContent = b.down?.toLocaleString() ?? '--';
+  document.getElementById('dDnPct').textContent = (b.downPct ?? '--') + '%';
+
+  const idx = d.indices || [];
+  const find = (key) => idx.find(i => i.key === key);
+  const iSH = find('iSH'), iHSI = find('hkHSI'), iIXIC = find('usIXIC');
+  if (iSH) setStat('dSH', 'dSHC', iSH);
+  if (iHSI) setStat('dHSI', 'dHSIC', iHSI);
+  if (iIXIC) setStat('dIXIC', 'dIXICC', iIXIC);
+
+  // 主题进度条：活跃度
+  const activity = parseFloat(String(b.activity || '').replace('%', '')) || 0;
+  document.getElementById('tpLeft').textContent = '市场活跃度';
+  document.getElementById('tpRight').textContent = (activity || '—') + (activity ? '%' : '');
+  animateProgress(activity);
+}
+
+function setStat(id, idC, item) {
+  document.getElementById(id).textContent = item.price?.toFixed(item.price > 1000 ? 0 : 2) ?? '--';
+  const sign = item.changePct >= 0 ? '+' : '';
+  document.getElementById(idC).textContent = sign + item.changePct + '%';
+  document.getElementById(idC).className = 'c ' + (item.changePct >= 0 ? 'up' : 'dn');
+}
+
+function animateProgress(target) {
+  const fill = document.getElementById('tpFill');
+  // 从 0 动画到目标值
+  const start = parseFloat(fill.style.width) || 0;
+  const targetW = Math.min(Math.max(target, 0), 100);
+  const duration = 1200;
+  const startT = performance.now();
+  function step(now) {
+    const k = Math.min(1, (now - startT) / duration);
+    const eased = 1 - Math.pow(1 - k, 3);
+    fill.style.width = (start + (targetW - start) * eased) + '%';
+    if (k < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+loadData();
+// 每 60 秒自动刷新
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>
