@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>🏖️ 波段沙滩监控 · 潜水摸鱼夜间版</title>
+<script src="data_embedded.js"></script>
 <style>
 /* ============================================================
    基础变量（白天=热带沙滩 / 夜间=潜水摸鱼深海）
@@ -814,24 +815,30 @@ const MarketAutoLoader = {
   /* 手动立即刷新（页面/区域刷新时调用） */
   refresh() { this.fetch(); },
 
-  /* 核心：加载 data.json → 解析 → 渲染；失败回退模拟 */
+  /* 核心：加载 data.json → 解析 → 渲染；失败回退内嵌数据（file:// 场景）→ 再失败回退模拟 */
   async fetch() {
     const seq = ++this._seq;
     this._setLoading();
+    let data = null, fromEmbedded = false;
     try {
       const res = await fetch(this.config.dataFile, { cache: 'no-store' });
       if (!res.ok) throw new Error('data.json 不存在(HTTP ' + res.status + ')');
-      const data = await res.json();
-      if (seq !== this._seq) return;  // 竞态保护
-      this._render(data);
+      data = await res.json();
     } catch (e) {
-      console.warn('[市场数据] 加载失败:', e.message);
-      if (seq === this._seq) this._renderFallback(e.message);
+      console.warn('[市场数据] fetch 失败，回退内嵌数据:', e.message);
+      data = window.TROPICAL_EMBEDDED_DATA || null;
+      fromEmbedded = !!data;
+      if (!data) {
+        if (seq === this._seq) this._renderFallback(e.message);
+        return;
+      }
     }
+    if (seq !== this._seq) return;  // 竞态保护
+    this._render(data, fromEmbedded);
   },
 
   /* ---- 渲染：市场全景 + 温度自动计算 ---- */
-  _render(data) {
+  _render(data, fromEmbedded) {
     const b = data.marketBreadth;
     if (!b) throw new Error('marketBreadth 字段缺失');
 
@@ -864,11 +871,11 @@ const MarketAutoLoader = {
     ].filter(Boolean).join(' · ');
     document.getElementById('weatherMeta').textContent = meta || '实时数据';
     document.getElementById('weatherError').style.display = 'none';
-    this._setSourceTag(b.source || data.source || 'data.json', false);
+    this._setSourceTag((fromEmbedded ? '📦 ' : '') + (b.source || data.source || 'data.json'), false);
 
     // 4) 同步数据状态标签（顶部）
     if (typeof UI !== 'undefined' && UI.setDataStatus) {
-      UI.setDataStatus('live');
+      UI.setDataStatus('live', fromEmbedded ? '内嵌快照 · data_embedded.js' : '真实数据 · data.json (通达信)');
     }
 
     // 4) 同步指数
@@ -877,6 +884,8 @@ const MarketAutoLoader = {
       DataEngine.pool = data.stockPool || [];   // 同步股票池（供自选搜索）
       UI.renderIndices();
       UI.renderWatchlist();
+      // 4.1) 信号自动判断（8 维，依据既有战法规则）
+      if (typeof UI !== 'undefined' && UI.autoJudgeSignals) UI.autoJudgeSignals();
     }
 
     // 5) 板块复盘渲染
@@ -976,16 +985,23 @@ const SectorReviewRenderer = {
   _renderHistory() {
     fetch('daily_snapshots.json', { cache: 'no-store' })
       .then(r => r.ok ? r.json() : Promise.reject('无快照'))
-      .then(snaps => {
-        if (!snaps || snaps.length < 2) {
-          document.getElementById('srChartEmpty').textContent = `快照不足（当前 ${snaps?.length || 0} 条），需累积 2 条以上才能绘制走势图`;
-          return;
-        }
-        this._drawChart(snaps);
-      })
+      .then(snaps => this._drawIfEnough(snaps))
       .catch(() => {
-        document.getElementById('srChartEmpty').textContent = '暂无历史快照（daily_snapshots.json 不存在）';
+        // file:// 协议下 fetch 被拦截 → 回退内嵌快照
+        if (window.TROPICAL_EMBEDDED_SNAPSHOTS && window.TROPICAL_EMBEDDED_SNAPSHOTS.length) {
+          this._drawIfEnough(window.TROPICAL_EMBEDDED_SNAPSHOTS);
+        } else {
+          document.getElementById('srChartEmpty').textContent = '暂无历史快照（daily_snapshots.json 不存在）';
+        }
       });
+  },
+
+  _drawIfEnough(snaps) {
+    if (!snaps || snaps.length < 2) {
+      document.getElementById('srChartEmpty').textContent = `快照不足（当前 ${snaps?.length || 0} 条），需累积 2 条以上才能绘制走势图`;
+      return;
+    }
+    this._drawChart(snaps);
   },
 
   /* SVG 折线图绘制 */
@@ -1163,6 +1179,8 @@ const UI = {
       SignalManager.set('market_temp', 'wait');
     }
     this.renderStrategy(temp);
+    // 8 维信号自动判断（依据既有规则；无真实数据时仅温度类信号可判）
+    this.autoJudgeSignals();
     // 手动计算成功：收起手动区，标记数据已就绪
     if (typeof MarketAutoLoader !== 'undefined') {
       MarketAutoLoader._toggleManualZone(false);
@@ -1181,6 +1199,80 @@ const UI = {
     document.getElementById('riskNote').textContent = ok ? '允许进场，执行交易闭环' : '放弃交易，等待明日检测';
     document.getElementById('vBig').textContent = ok ? '下海冲浪！🏄' : (temp === null || isNaN(temp) ? '等待数据' : '岸边躺平！🐢');
     document.getElementById('vSub').textContent = ok ? '温度温和、共振齐备，回踩10日线的标的可上，3570进场！' : '温度未达标，一票否决，今天晒晒太阳/潜潜水，明天再看！';
+  },
+
+  /* ---- 8 维信号自动判断（依据既有战法规则） ----
+     规则：
+     1) market_temp  温度 1.30-1.50 → 买入（由 calcTemperature 设置）
+     2) market_trend 大盘趋势：主要指数均值 ≥ -1% → 买入；≤ -3% → 卖出
+     3) res_market   大盘不创新低：主要指数无 ≤ -2.5% 下杀 → 买入
+     4) res_sector   板块不创新低：跌幅榜最深 > -2% → 买入；≤ -5% → 卖出
+     5) res_stock    个股不创新低：自选股 ≥60% 上涨 → 买入；≥50% 跌超3% → 卖出
+     6) position     位置安全：自选股均涨 -3%~+1.5% 内 → 买入；>+1.5% 追高风险 → 观望
+     7) strategy     战法匹配：温度温和 → 买入
+     8) risk         风险收益比：温度温和 → 买入
+     无真实数据时仅温度类信号可判，其余保持默认 */
+  autoJudgeSignals() {
+    const data = DataEngine.realData;
+    const hasReal = !!(data && data.indices);
+    const S = SignalManager;
+    const up = parseInt(document.getElementById('inUp').value);
+    const dn = parseInt(document.getElementById('inDown').value);
+    const temp = (up && dn) ? (up - dn) / dn : null;
+    const tempOk = temp !== null && temp >= 1.3 && temp <= 1.5;
+
+    // 7) 战法匹配 & 8) 风险收益比：始终基于温度可判
+    S.set('strategy', tempOk ? 'buy' : 'wait');
+    S.set('risk', tempOk ? 'buy' : 'wait');
+
+    // 无真实数据：其余信号保持默认，不覆盖
+    if (!hasReal) { this.renderSignals(); return; }
+
+    const idx = {};
+    (data.indices || []).forEach(i => { idx[i.key] = i; });
+    const zh = [idx.iSH, idx.iSZ].filter(Boolean);   // 大盘 = 上证 + 深证
+
+    // 2) 大盘趋势过滤
+    const avgChg = zh.length ? zh.reduce((s, i) => s + (i.changePct || 0), 0) / zh.length : null;
+    if (avgChg === null) S.set('market_trend', 'wait');
+    else if (avgChg <= -3) S.set('market_trend', 'sell');
+    else if (avgChg <= -1) S.set('market_trend', 'wait');
+    else S.set('market_trend', 'buy');
+
+    // 3) 大盘不再创新低
+    const worstZh = zh.length ? Math.min(...zh.map(i => i.changePct || 0)) : null;
+    if (worstZh === null) S.set('res_market', 'wait');
+    else if (worstZh <= -2.5) S.set('res_market', 'sell');
+    else S.set('res_market', 'buy');
+
+    // 4) 板块不再创新低
+    const falls = data.sectorReview?.topFall || [];
+    if (falls.length) {
+      const worstSec = Math.min(...falls.map(s => s.涨幅 || 0));
+      if (worstSec <= -5) S.set('res_sector', 'sell');
+      else if (worstSec <= -2) S.set('res_sector', 'wait');
+      else S.set('res_sector', 'buy');
+    } else S.set('res_sector', 'wait');
+
+    // 5) 个股不再创新低（自选股）
+    const wl = data.watchlist || [];
+    if (wl.length) {
+      const dn3 = wl.filter(w => (w.changePct || 0) <= -3).length;
+      const upN = wl.filter(w => (w.changePct || 0) >= 0).length;
+      if (dn3 >= 2 || dn3 / wl.length >= 0.5) S.set('res_stock', 'sell');
+      else if (upN / wl.length >= 0.6) S.set('res_stock', 'buy');
+      else S.set('res_stock', 'wait');
+    } else S.set('res_stock', 'wait');
+
+    // 6) 位置安全评估
+    if (wl.length) {
+      const avgW = wl.reduce((s, w) => s + (w.changePct || 0), 0) / wl.length;
+      if (avgW <= -3) S.set('position', 'sell');
+      else if (avgW >= 1.5) S.set('position', 'wait');
+      else S.set('position', 'buy');
+    } else S.set('position', 'wait');
+
+    this.renderSignals();
   },
 
   /* ---- 指数渲染 ---- */
@@ -1287,11 +1379,11 @@ const UI = {
   },
 
   /* ---- 数据状态提示 ---- */
-  setDataStatus(type) {
+  setDataStatus(type, label) {
     const el = document.getElementById('dataStatus');
     const tx = document.getElementById('dataStatusText');
     el.className = 'data-status ' + type;
-    if (type === 'live') tx.textContent = '真实数据 · data.json (通达信)';
+    if (type === 'live') tx.textContent = label || '真实数据 · data.json (通达信)';
     else if (type === 'mock') tx.textContent = '模拟数据 · 未找到data.json';
     else tx.textContent = '离线模式';
   },
@@ -1356,6 +1448,7 @@ const App = {
         UI.setDataStatus(ok ? 'live' : 'mock');
         UI.renderIndices();
         UI.renderWatchlist();
+        UI.autoJudgeSignals();
       });
     }, 60000);
   }

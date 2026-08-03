@@ -32,8 +32,10 @@
 """
 import sys, os, json, datetime
 
-# 加载工作区依赖 + 绕代理直连
-sys.path.insert(0, r'D:\XM\WorkBuddy\.workbuddy\deps')
+# 加载工作区依赖 + 绕代理直连（仅本机存在时生效，Linux CI 自动跳过）
+_LOCAL_DEPS = r'D:\XM\WorkBuddy\.workbuddy\deps'
+if os.path.isdir(_LOCAL_DEPS):
+    sys.path.insert(0, _LOCAL_DEPS)
 os.environ['NO_PROXY'] = '*'; os.environ['no_proxy'] = '*'
 for k in ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy']:
     os.environ.pop(k, None)
@@ -260,6 +262,35 @@ def save_daily_snapshot(breadth, sectors):
         json.dump(records, f, ensure_ascii=False, indent=1)
     log(f"✓ 快照已写入 {path}（共 {len(records)} 条）")
 
+
+def generate_embedded(data, out_dir):
+    """生成 data_embedded.js：把 data.json + daily_snapshots.json 内嵌为全局变量。
+
+    背景：用户用 file:// 协议直接双击打开 index.html 时，浏览器禁止 fetch 本地
+    JSON（CORS），导致"获取数据失败"。前端 fetch 失败会自动回退读取
+    window.TROPICAL_EMBEDDED_DATA / window.TROPICAL_EMBEDDED_SNAPSHOTS，
+    从而无需本地服务器也能展示真实数据。
+    """
+    snaps = []
+    snaps_path = os.path.join(out_dir, 'daily_snapshots.json')
+    if os.path.exists(snaps_path):
+        try:
+            with open(snaps_path, 'r', encoding='utf-8') as f:
+                snaps = json.load(f)
+        except Exception:
+            snaps = []
+    js = (
+        '/* 自动生成：数据内嵌快照（fetch_market_data.py 生成）\n'
+        '   作用：file:// 协议下浏览器禁止 fetch 本地 JSON，前端加载失败时回退到此内嵌数据。\n'
+        '   更新方式：重新运行 fetch_market_data.py。 */\n'
+        'window.TROPICAL_EMBEDDED_DATA=' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n'
+        'window.TROPICAL_EMBEDDED_SNAPSHOTS=' + json.dumps(snaps, ensure_ascii=False, separators=(',', ':')) + ';\n'
+    )
+    emb_path = os.path.join(out_dir, 'data_embedded.js')
+    with open(emb_path, 'w', encoding='utf-8') as f:
+        f.write(js)
+    log(f"✓ 内嵌数据已写入 {emb_path}")
+
 def fetch_daily():
     """日线数据（Tushare 优先 → AKShare 降级）"""
     import akshare as ak
@@ -344,6 +375,9 @@ def main():
     with open(out_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
     log(f"✓ 实时数据已写入 {out_path}")
+
+    # 同步生成内嵌数据（file:// 场景前端回退使用）
+    generate_embedded(data, out_dir)
 
     if want_daily:
         log("拉取日线数据...")

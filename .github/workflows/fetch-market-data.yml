@@ -1,0 +1,67 @@
+name: Fetch Market Data & Deploy
+
+# 触发方式：
+#   1. 定时：北京时间 9:05-15:30 每 5 分钟（A股交易时段），对应 UTC 01:05-07:30
+#   2. 手动：仓库 Actions 页面点 "Run workflow"
+on:
+  schedule:
+    - cron: '*/5 1-7 * * 1-5'   # UTC 01:00-07:59 每5分钟（北京时间 09:00-15:59）
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --quiet akshare pandas
+
+      - name: Fetch market data
+        run: |
+          python fetch_market_data.py
+        timeout-minutes: 10
+
+      - name: Verify data freshness
+        run: |
+          python - <<'EOF'
+          import json, datetime
+          with open('sites/17-tropical/data.json', 'r', encoding='utf-8') as f:
+              data = json.load(f)
+          ts = data.get('timestamp', '')
+          print(f'data.json timestamp: {ts}')
+          breadth = data.get('marketBreadth', {})
+          print(f'temperature: {breadth.get("temperature")}  up: {breadth.get("up")}  down: {breadth.get("down")}')
+          if not ts:
+              raise SystemExit('ERROR: empty timestamp, fetch failed')
+          EOF
+
+      - name: Commit data updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sites/17-tropical/data.json sites/17-tropical/daily_snapshots.json sites/17-tropical/data_embedded.js
+          git diff --cached --quiet && echo "No data changes, skip commit" || {
+            git commit -m "🤖 自动更新市场数据 $(date '+%Y-%m-%d %H:%M')"
+            git push origin main
+          }
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
+          allow_empty_commit: true
