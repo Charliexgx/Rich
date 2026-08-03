@@ -60,11 +60,6 @@ body.night::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:
   animation:bubbles 9s linear infinite}
 @keyframes bubbles{from{background-position:0 100%}to{background-position:0 -100%}}
 /* 游动的鱼 */
-body.night .fish-deco{position:fixed;z-index:0;font-size:2rem;opacity:.5;pointer-events:none;animation:swim 24s linear infinite}
-body.night .fish-deco.f1{top:22%;left:-60px}
-body.night .fish-deco.f2{top:60%;left:-40px;animation-delay:-8s;animation-direction:reverse;font-size:1.5rem}
-body.night .fish-deco.f3{top:38%;left:-80px;animation-delay:-15s;font-size:1.8rem}
-@keyframes swim{from{transform:translateX(0) rotate(0deg)}to{transform:translateX(calc(100vw + 160px)) rotate(2deg)}}
 
 /* ============================================================
    布局容器
@@ -473,11 +468,7 @@ body.night .foot{color:var(--text2)}
 </head>
 <body class="day">
 <!-- 夜间游鱼装饰 -->
-<div class="fish-deco f1">🐠</div>
-<div class="fish-deco f2">🐟</div>
-<div class="fish-deco f3">🐡</div>
-
-<div class="beach">
+  <div class="beach">
   <!-- ===== 顶栏 ===== -->
   <header class="top">
     <h1><span id="titleEmoji">🏖️</span> 波段沙滩监控站</h1>
