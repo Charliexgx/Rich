@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>🏖️ 波段沙滩监控 · 潜水摸鱼夜间版</title>
+<style>
+/* ============================================================
+   基础变量（白天=热带沙滩 / 夜间=潜水摸鱼深海）
+   ============================================================ */
+:root{
+  --font:'PingFang SC','Microsoft YaHei','Segoe UI',sans-serif;
+  --font-num:'DIN','Bahnschrift','Arial',sans-serif;
+  --radius:22px;
+  font-size:18px; /* 全局放大基准 */
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);line-height:1.7;min-height:100vh;transition:background .5s,color .5s}
+
+/* ============================================================
+   白天主题：热带沙滩
+   ============================================================ */
+body.day{
+  --sky:#7fd8e8;--sky2:#a5e3ee;--sky3:#d8f3e0;
+  --leaf:#2ec76e;--leaf2:#1fa55a;--coral:#ff7a59;--yl:#ffd23f;--snow:#fffdf7;--sunk:#ff9e6d;
+  --text:#1d3a2a;--text2:#5a7a48;--card:rgba(255,253,247,.94);--shadow:0 10px 0 rgba(31,165,90,.25);
+  background:linear-gradient(180deg,var(--sky) 0%,var(--sky2) 45%,var(--sky3) 100%);background-attachment:fixed;color:var(--text);
+}
+body.day::before{content:'☀️';position:fixed;top:16px;right:28px;font-size:3.6rem;z-index:0;animation:sunspin 40s linear infinite;opacity:.9;pointer-events:none}
+@keyframes sunspin{to{transform:rotate(360deg)}}
+body.day::after{content:'';position:fixed;bottom:0;left:0;right:0;height:130px;pointer-events:none;z-index:0;
+  background:linear-gradient(180deg,transparent,#1fa55a);
+  clip-path:polygon(0 60%,12% 40%,25% 65%,38% 30%,52% 60%,66% 35%,80% 62%,93% 45%,100% 58%,100% 100%,0 100%)}
+
+/* ============================================================
+   夜间主题：潜水摸鱼（深海）
+   ============================================================ */
+body.night{
+  --deep1:#02141f;--deep2:#04202e;--deep3:#063348;--deep4:#0a4a5e;
+  --bubble:#7ef2e8;--glow:#4deeea;--coral2:#ff6b81;--fish:#ffd166;--sand:#9a8c6e;--kelp:#37e0a0;
+  --text:#d8f6f2;--text2:#8fd6cf;--card:rgba(6,45,62,.82);--shadow:0 0 24px rgba(78,238,234,.15);
+  background:linear-gradient(180deg,var(--deep1) 0%,var(--deep2) 40%,var(--deep3) 75%,var(--deep4) 100%);background-attachment:fixed;color:var(--text);
+}
+/* 深海光晕 */
+body.night::before{content:'';position:fixed;top:-120px;left:50%;transform:translateX(-50%);width:600px;height:300px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(78,238,234,.18),transparent 70%);pointer-events:none;z-index:0}
+/* 气泡上升动画 */
+body.night::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.7;
+  background-image:
+    radial-gradient(circle at 12% 85%,rgba(126,242,232,.35) 6px,transparent 7px),
+    radial-gradient(circle at 22% 70%,rgba(126,242,232,.22) 4px,transparent 5px),
+    radial-gradient(circle at 34% 92%,rgba(126,242,232,.3) 5px,transparent 6px),
+    radial-gradient(circle at 55% 78%,rgba(126,242,232,.25) 3px,transparent 4px),
+    radial-gradient(circle at 68% 88%,rgba(126,242,232,.35) 7px,transparent 8px),
+    radial-gradient(circle at 82% 72%,rgba(126,242,232,.22) 4px,transparent 5px),
+    radial-gradient(circle at 92% 90%,rgba(126,242,232,.3) 6px,transparent 7px);
+  background-size:420px 420px;
+  animation:bubbles 9s linear infinite}
+@keyframes bubbles{from{background-position:0 100%}to{background-position:0 -100%}}
+/* 游动的鱼 */
+body.night .fish-deco{position:fixed;z-index:0;font-size:2rem;opacity:.5;pointer-events:none;animation:swim 24s linear infinite}
+body.night .fish-deco.f1{top:22%;left:-60px}
+body.night .fish-deco.f2{top:60%;left:-40px;animation-delay:-8s;animation-direction:reverse;font-size:1.5rem}
+body.night .fish-deco.f3{top:38%;left:-80px;animation-delay:-15s;font-size:1.8rem}
+@keyframes swim{from{transform:translateX(0) rotate(0deg)}to{transform:translateX(calc(100vw + 160px)) rotate(2deg)}}
+
+/* ============================================================
+   布局容器
+   ============================================================ */
+.beach{position:relative;z-index:1;max-width:clamp(1120px,90vw,1920px);margin:0 auto;padding:clamp(14px,3vw,28px);padding-bottom:clamp(130px,16vw,180px)}
+
+/* ============================================================
+   顶栏
+   ============================================================ */
+.top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:22px}
+.top h1{font-size:clamp(1.5rem,4vw,2.2rem);letter-spacing:1px;display:flex;align-items:center;gap:10px}
+body.day .top h1{color:var(--snow);text-shadow:3px 3px 0 var(--leaf2);transform:rotate(-1deg)}
+body.night .top h1{color:var(--bubble);text-shadow:0 0 18px rgba(126,242,232,.6)}
+.top-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:none;border-radius:50px;padding:10px 20px;font-size:.95rem;font-weight:800;cursor:pointer;font-family:inherit;transition:all .2s;box-shadow:0 4px 0 rgba(0,0,0,.15)}
+.btn:active{transform:translateY(3px);box-shadow:none}
+body.day .btn{background:var(--snow);color:var(--leaf2)}
+body.night .btn{background:var(--deep3);color:var(--bubble);border:1px solid rgba(126,242,232,.4)}
+.btn.primary{background:var(--coral);color:#fff}
+body.night .btn.primary{background:var(--coral2);color:#fff;border:none}
+.btn:hover{filter:brightness(1.08)}
+.mode-switch{position:relative;width:120px;height:44px;border-radius:50px;cursor:pointer;border:2px solid;display:flex;align-items:center;justify-content:space-around;font-size:1.2rem;transition:all .3s;overflow:hidden}
+body.day .mode-switch{border-color:var(--leaf2);background:linear-gradient(90deg,#ffe58a,#ffd23f)}
+body.night .mode-switch{border-color:var(--glow);background:linear-gradient(90deg,var(--deep2),var(--deep4))}
+.mode-switch .knob{position:absolute;top:2px;width:36px;height:36px;border-radius:50%;transition:left .35s;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+body.day .mode-switch .knob{left:2px;background:radial-gradient(circle at 35% 35%,#fff7d6,#ffb703)}
+body.night .mode-switch .knob{left:78px;background:radial-gradient(circle at 35% 35%,#b8fff8,#0a4a5e)}
+.badge{background:var(--coral);color:#fff;padding:8px 20px;border-radius:50px;font-size:.8rem;box-shadow:0 6px 0 var(--sunk);transform:rotate(2deg);font-weight:700}
+body.night .badge{background:rgba(255,107,129,.85);box-shadow:0 6px 0 rgba(10,74,94,.9)}
+
+/* ============================================================
+   早盘数据录入（温度计算核心）
+   ============================================================ */
+.input-panel{border-radius:var(--radius);padding:clamp(18px,3.5vw,28px);margin-bottom:20px}
+body.day .input-panel{background:var(--card);box-shadow:var(--shadow);border:3px solid var(--leaf)}
+body.night .input-panel{background:var(--card);border:1px solid rgba(126,242,232,.3);box-shadow:var(--shadow)}
+.input-panel .sec-title{font-size:1.1rem;font-weight:900;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+body.day .input-panel .sec-title{color:var(--leaf2)}
+body.night .input-panel .sec-title{color:var(--bubble)}
+.input-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:14px;margin-bottom:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:.9rem;font-weight:800;opacity:.85}
+.field input{border:none;border-radius:14px;padding:14px 18px;font-size:1.15rem;font-weight:800;font-family:var(--font-num);outline:none;width:100%;transition:all .2s}
+body.day .field input{background:#f0f9f2;border:2px solid #cde8d8;color:var(--text)}
+body.night .field input{background:rgba(2,20,31,.7);border:1px solid rgba(126,242,232,.25);color:var(--bubble)}
+.field input:focus{box-shadow:0 0 0 3px rgba(255,122,89,.4)}
+.calc-btn{justify-content:center}
+body.day .calc-btn .btn{background:var(--leaf);color:#fff}
+body.night .calc-btn .btn{background:var(--kelp);color:#02141f}
+.calc-note{font-size:.8rem;opacity:.7;margin-top:6px}
+body.day .calc-note{color:var(--text2)}
+body.night .calc-note{color:var(--text2)}
+/* 获取早盘数据状态提示 */
+.fetch-status{font-size:.9rem;font-weight:800;text-align:center;margin-top:10px;padding:8px 16px;border-radius:50px;display:inline-block;width:100%}
+body.day .fetch-status{color:var(--leaf2);background:rgba(46,199,110,.08)}
+body.night .fetch-status{color:var(--bubble);background:rgba(78,238,234,.06)}
+.fetch-status.loading{color:var(--text2);opacity:.8}
+body.day .fetch-status.loading{color:var(--text2)}
+.fetch-status.success{color:var(--leaf2)}
+.fetch-status.error{color:#e85d4a;background:rgba(232,93,74,.1)}
+/* 手动输入兜底区 */
+.manual-zone{margin-top:16px;padding:16px 18px;border-radius:18px;animation:fadeIn .4s ease}
+body.day .manual-zone{background:rgba(255,122,89,.07);border:2px dashed rgba(255,122,89,.5)}
+body.night .manual-zone{background:rgba(255,107,129,.08);border:2px dashed rgba(255,107,129,.4)}
+.manual-title{font-size:.95rem;font-weight:900;margin-bottom:12px;color:var(--coral)}
+body.night .manual-title{color:#ff8f7a}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ============================================================
+   温度仪表
+   ============================================================ */
+.temp-card{border-radius:var(--radius);padding:clamp(18px,4vw,30px);margin-bottom:20px;text-align:center;position:relative;overflow:hidden}
+body.day .temp-card{background:var(--card);box-shadow:var(--shadow);border:3px solid var(--leaf)}
+body.night .temp-card{background:var(--card);border:1px solid rgba(78,238,234,.35);box-shadow:0 0 30px rgba(78,238,234,.12)}
+.temp-main{display:flex;align-items:center;justify-content:center;gap:clamp(16px,4vw,36px);flex-wrap:wrap}
+.temp-emoji{font-size:clamp(2.6rem,8vw,4.4rem);animation:wiggle 3s ease-in-out infinite}
+body.day .temp-emoji{filter:drop-shadow(0 4px 8px rgba(255,122,89,.4))}
+body.night .temp-emoji{filter:drop-shadow(0 0 18px rgba(126,242,232,.6))}
+@keyframes wiggle{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.temp-num-wrap{display:flex;flex-direction:column;align-items:center}
+.temp-num{font-size:clamp(3rem,10vw,5.2rem);font-weight:900;font-family:var(--font-num);line-height:1.1;letter-spacing:1px}
+body.day .temp-num{color:var(--leaf2)}
+body.night .temp-num{color:var(--glow);text-shadow:0 0 24px rgba(78,238,234,.55)}
+.temp-label{font-size:.85rem;letter-spacing:2px;opacity:.8;margin-top:4px;font-weight:700}
+.temp-verdict{margin-top:16px;display:inline-block;padding:12px 30px;border-radius:50px;font-size:clamp(1.1rem,3vw,1.4rem);font-weight:900;letter-spacing:1px}
+body.day .temp-verdict{background:var(--coral);color:#fff;box-shadow:0 6px 0 var(--sunk)}
+body.night .temp-verdict{background:var(--coral2);color:#fff;box-shadow:0 6px 0 rgba(10,74,94,.9)}
+.temp-verdict.good{background:var(--leaf);box-shadow:0 6px 0 rgba(31,165,90,.5)}
+body.night .temp-verdict.good{background:var(--kelp);color:#02141f}
+.temp-verdict.warn{background:var(--yl);color:#1d3a2a}
+body.night .temp-verdict.warn{background:var(--fish);color:#02141f}
+.temp-rule{font-size:.85rem;opacity:.75;margin-top:12px}
+body.day .temp-rule{color:var(--text2)}
+body.night .temp-rule{color:var(--text2)}
+
+/* ============================================================
+   实时天气温度（自动加载）——与现有排版风格一致
+   ============================================================ */
+.weather-auto{
+  max-width:none;margin:22px auto 0;padding:16px 20px;border-radius:18px;
+  border-top:2px dashed;
+  position:relative;text-align:left;transition:all .3s;
+}
+body.day .weather-auto{border-color:rgba(31,165,90,.4);background:rgba(46,199,110,.06)}
+body.night .weather-auto{border-color:rgba(126,242,232,.3);background:rgba(78,238,234,.05)}
+.weather-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px}
+.weather-city{font-size:1rem;font-weight:900;letter-spacing:1px}
+body.day .weather-city{color:var(--leaf2)}
+body.night .weather-city{color:var(--bubble)}
+.weather-source{font-size:.72rem;opacity:.65;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.weather-source .src-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.weather-source.live .src-dot{background:var(--leaf);animation:blink 1.6s infinite}
+.weather-source.fallback .src-dot{background:var(--yl)}
+.weather-source.error .src-dot{background:#e85d4a}
+.weather-body{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.weather-temp{font-size:clamp(2rem,5vw,2.8rem);font-weight:900;font-family:var(--font-num);line-height:1}
+body.day .weather-temp{color:var(--coral)}
+body.night .weather-temp{color:var(--glow);text-shadow:0 0 16px rgba(78,238,234,.5)}
+.weather-unit{font-size:1.2rem;font-weight:800;opacity:.7}
+.weather-desc{font-size:1rem;font-weight:800}
+body.day .weather-desc{color:var(--text)}
+body.night .weather-desc{color:var(--text)}
+.weather-meta{font-size:.78rem;opacity:.65;margin-top:8px;font-weight:600}
+.weather-error{font-size:.8rem;color:#e85d4a;font-weight:700;margin-top:8px;padding:8px 12px;border-radius:10px;background:rgba(232,93,74,.1);line-height:1.6}
+
+/* 市场全景统计（自动加载涨跌家数） */
+.market-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,86px),1fr));gap:10px;margin-top:4px}
+.ms-item{display:flex;flex-direction:column;align-items:center;padding:10px 6px;border-radius:14px;transition:all .2s}
+body.day .ms-item{background:rgba(46,199,110,.08);border:1px solid rgba(31,165,90,.2)}
+body.night .ms-item{background:rgba(78,238,234,.06);border:1px solid rgba(78,238,234,.18)}
+.ms-label{font-size:.72rem;font-weight:700;opacity:.7;letter-spacing:1px}
+.ms-val{font-size:1.25rem;font-weight:900;font-family:var(--font-num);margin-top:2px}
+body.day .ms-val{color:var(--text)}
+body.night .ms-val{color:var(--text)}
+.ms-val.up{color:#e85d4a}
+body.night .ms-val.up{color:#ff8f7a}
+.ms-val.dn{color:var(--leaf2)}
+body.night .ms-val.dn{color:var(--kelp)}
+/* 温度条 */
+/* ============================================================
+   温度进度条 — 主题差异化（白天海浪 / 夜间深海潜水）
+   ============================================================ */
+.temp-track{
+  max-width:920px;margin:18px auto 0;height:36px;border-radius:18px;
+  overflow:hidden;position:relative;
+}
+/* 白天 = 热带沙滩：浅沙滩底色 + 海浪边框 */
+body.day .temp-track{
+  background:linear-gradient(180deg,#d8eef5 0%,#fff7e6 100%);
+  border:3px solid #2ec76e;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.6);
+}
+/* 夜间 = 潜水摸鱼：深海黑蓝底色 + 荧光边框 */
+body.night .temp-track{
+  background:linear-gradient(180deg,#02141f 0%,#04202e 50%,#063348 100%);
+  border:1px solid rgba(78,238,234,.4);
+  box-shadow:inset 0 0 12px rgba(78,238,234,.15);
+}
+/* 进度填充层（颜色与主题联动） */
+.temp-fill{
+  position:absolute;top:0;bottom:0;left:0;width:0;
+  transition:width .8s cubic-bezier(.2,.8,.2,1),background .4s;
+  z-index:2;
+}
+body.day .temp-fill{
+  background:linear-gradient(90deg,#ffd23f 0%,#ff9e6d 50%,#ff7a59 100%);
+}
+body.night .temp-fill{
+  background:linear-gradient(90deg,#0a4a5e 0%,#4deeea 100%);
+  box-shadow:0 0 12px rgba(126,242,232,.6);
+}
+/* 白天海浪 SVG 层 */
+.day-wave{
+  position:absolute;inset:0;width:100%;height:100%;
+  pointer-events:none;z-index:1;display:block;
+}
+.day-wave .wave-anim{width:100%;height:100%;opacity:.5}
+/* 夜间深海层 */
+.night-deep{
+  position:absolute;inset:0;pointer-events:none;z-index:1;
+}
+.night-deep .bub-bg{
+  position:absolute;inset:0;
+  background-image:
+    radial-gradient(circle at 8% 70%,rgba(126,242,232,.35) 3px,transparent 4px),
+    radial-gradient(circle at 22% 85%,rgba(126,242,232,.25) 2px,transparent 3px),
+    radial-gradient(circle at 38% 75%,rgba(126,242,232,.3) 4px,transparent 5px),
+    radial-gradient(circle at 55% 90%,rgba(126,242,232,.22) 2px,transparent 3px),
+    radial-gradient(circle at 70% 78%,rgba(126,242,232,.3) 3px,transparent 4px),
+    radial-gradient(circle at 88% 85%,rgba(126,242,232,.25) 3px,transparent 4px);
+  background-size:60px 60px;
+  animation:deepFloat 5s ease-in-out infinite;
+}
+@keyframes deepFloat{0%,100%{background-position:0 0}50%{background-position:0 -10px}}
+/* 主题切换：标记进度填充的温和区 */
+.temp-good-marker{
+  position:absolute;top:0;bottom:0;width:2px;z-index:3;
+}
+body.day .temp-good-marker{background:rgba(255,122,89,.5)}
+body.night .temp-good-marker{background:rgba(126,242,232,.6);box-shadow:0 0 4px rgba(126,242,232,.8)}
+/* 进度文字叠加 */
+.temp-pct-text{
+  position:absolute;top:50%;transform:translateY(-50%);left:50%;transform:translate(-50%,-50%);
+  font-size:.85rem;font-weight:900;z-index:4;
+  mix-blend-mode:normal;text-shadow:0 1px 2px rgba(0,0,0,.15);
+  pointer-events:none;
+}
+body.day .temp-pct-text{color:#fff}
+body.night .temp-pct-text{color:#02141f}
+
+.temp-zones{max-width:920px;margin:6px auto 0;display:flex;justify-content:space-between;font-size:.72rem;opacity:.7;font-weight:700}
+.temp-zones .zone-good{color:var(--leaf2)}
+body.night .temp-zones .zone-good{color:var(--kelp)}
+
+/* ============================================================
+   通用卡片网格
+   ============================================================ */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:18px;margin-bottom:20px}
+.card{background:var(--card);border-radius:var(--radius);padding:clamp(16px,3vw,22px);transition:transform .2s;position:relative}
+body.day .card{border:3px solid var(--leaf2);box-shadow:var(--shadow)}
+body.night .card{border:1px solid rgba(78,238,234,.25);box-shadow:var(--shadow)}
+.card:hover{transform:translateY(-4px)}
+.card h3{font-size:1.05rem;font-weight:900;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+body.day .card h3{color:var(--leaf2)}
+body.night .card h3{color:var(--bubble)}
+.card h3 .emo{font-size:1.3rem}
+.card .hint{font-size:.78rem;opacity:.65;font-weight:400}
+body.night .card .hint{color:var(--text2)}
+
+/* ============================================================
+   列表 / 表格
+   ============================================================ */
+.kv{display:flex;justify-content:space-between;padding:9px 0;font-size:1rem;border-bottom:2px dashed #cde8d8;align-items:center}
+body.night .kv{border-color:rgba(126,242,232,.15)}
+.kv:last-child{border-bottom:none}
+.kv b{font-weight:800}
+/* 多市场观察列表分组 */
+.market-group{margin-bottom:6px}
+.market-group+.market-group{margin-top:10px;padding-top:10px;border-top:2px dashed}
+body.day .market-group+.market-group{border-color:#cde8d8}
+body.night .market-group+.market-group{border-color:rgba(126,242,232,.15)}
+/* 观察列表通栏：宽屏下 A股/港股/美股 三分组横向并排 */
+.idx-groups{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.idx-groups .market-group{margin-bottom:0}
+.idx-groups .market-group+.market-group{margin-top:0;padding-top:0;border-top:none}
+@media(max-width:960px){
+  .idx-groups{grid-template-columns:1fr}
+  .idx-groups .market-group+.market-group{margin-top:10px;padding-top:10px;border-top:2px dashed}
+}
+.mg-label{font-size:.75rem;font-weight:900;letter-spacing:2px;margin-bottom:4px}
+body.day .mg-label{color:var(--coral)}
+body.night .mg-label{color:var(--bubble)}
+.up{color:#e85d4a;font-weight:800}
+body.night .up{color:#ff8f7a}
+.dn{color:var(--leaf2);font-weight:800}
+body.night .dn{color:var(--kelp)}
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+th{text-align:left;font-size:.8rem;letter-spacing:1px;padding:8px 4px;border-bottom:2px solid}
+body.day th{color:var(--coral);border-color:var(--leaf2)}
+body.night th{color:var(--bubble);border-color:rgba(126,242,232,.35)}
+td{padding:10px 4px;border-bottom:1px dashed}
+body.day td{border-color:#cde8d8}
+body.night td{border-color:rgba(126,242,232,.12)}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* ============================================================
+   自选股管理（添加/搜索/删除）
+   ============================================================ */
+.watch-tools{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.watch-search{flex:1;min-width:200px;position:relative}
+.watch-search input{width:100%;border:none;border-radius:14px;padding:13px 16px;font-size:1rem;font-family:inherit;outline:none}
+body.day .watch-search input{background:#f0f9f2;border:2px solid #cde8d8;color:var(--text)}
+body.night .watch-search input{background:rgba(2,20,31,.7);border:1px solid rgba(126,242,232,.25);color:var(--bubble)}
+.search-results{position:absolute;top:calc(100% + 6px);left:0;right:0;max-height:280px;overflow-y:auto;border-radius:14px;z-index:50;display:none}
+body.day .search-results{background:var(--snow);border:2px solid #cde8d8;box-shadow:0 10px 30px rgba(0,0,0,.15)}
+body.night .search-results{background:var(--deep2);border:1px solid rgba(126,242,232,.3);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.search-results.show{display:block}
+.sr-item{padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:.92rem;transition:background .15s}
+.sr-item:hover{background:rgba(255,122,89,.15)}
+body.night .sr-item:hover{background:rgba(78,238,234,.12)}
+.sr-item .add{color:var(--coral);font-weight:800}
+body.night .sr-item .add{color:var(--bubble)}
+.watch-item{border-bottom:1px dashed}
+body.day .watch-item{border-color:#cde8d8}
+body.night .watch-item{border-color:rgba(126,242,232,.12)}
+.watch-item .w-info{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.watch-item .w-code{font-family:var(--font-num);font-size:.85rem;opacity:.6}
+.watch-item.pending .w-quote{opacity:.45}
+.watch-item.pending .w-name::after{content:'· 待行情';display:inline-block;margin-left:6px;font-size:.7rem;opacity:.6;font-weight:400}
+.watch-item .w-name{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.watch-item .w-quote{text-align:right}
+.watch-item .w-quote .p{font-family:var(--font-num);font-weight:800;font-size:1.05rem}
+.watch-item .w-quote .c{font-size:.82rem;font-weight:800}
+.watch-item .del-btn{border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;flex-shrink:0;transition:all .15s;font-family:inherit;margin:0 auto;display:block}
+body.day .del-btn{background:#ffe3e0;color:#e85d4a}
+body.night .del-btn{background:rgba(255,107,129,.15);color:#ff8f7a}
+.del-btn:hover{transform:scale(1.15)}
+.watch-empty{padding:20px;text-align:center;font-size:.9rem;opacity:.6}
+body.night .watch-empty{color:var(--text2)}
+
+/* ============================================================
+   信号判断
+   ============================================================ */
+.sig{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:2px dashed;font-size:.95rem;gap:8px}
+body.day .sig{border-color:#cde8d8}
+body.night .sig{border-color:rgba(126,242,232,.12)}
+.sig .sig-name{font-weight:700;flex:1}
+.sig button{border:none;border-radius:50px;padding:9px 22px;font-family:inherit;font-size:.9rem;font-weight:800;cursor:pointer;transition:all .15s;box-shadow:0 3px 0 rgba(0,0,0,.1);flex-shrink:0}
+.sig button:active{transform:translateY(2px);box-shadow:none}
+body.day .sig button{background:#eef7f0}
+body.night .sig button{background:rgba(2,20,31,.6);color:var(--bubble);border:1px solid rgba(126,242,232,.2)}
+.sig button.buy{background:var(--coral);color:#fff}
+.sig button.sell{background:var(--leaf);color:#fff}
+.sig button.wait{background:var(--yl);color:#1d3a2a}
+body.night .sig button.buy{background:var(--coral2);color:#fff;border:none}
+body.night .sig button.sell{background:var(--kelp);color:#02141f;border:none}
+body.night .sig button.wait{background:var(--fish);color:#02141f;border:none}
+
+/* ============================================================
+   结论条 / 数据状态 / 页脚
+   ============================================================ */
+.verdict{background:var(--yl);border-radius:var(--radius);padding:20px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+body.day .verdict{border:3px solid #e8b93a;box-shadow:0 8px 0 rgba(214,166,30,.4)}
+body.night .verdict{background:rgba(255,209,102,.14);border:1px solid rgba(255,209,102,.4);box-shadow:0 0 24px rgba(255,209,102,.08)}
+.verdict .big{font-size:1.5rem;font-weight:900}
+body.day .verdict .big{color:#1d3a2a}
+body.night .verdict .big{color:var(--fish)}
+.verdict .sub{font-size:.95rem;font-weight:700}
+body.day .verdict .sub{color:#5a7a48}
+body.night .verdict .sub{color:var(--text2)}
+.data-status{display:inline-flex;align-items:center;gap:8px;font-size:.85rem;padding:8px 16px;border-radius:50px;font-weight:700}
+body.day .data-status{background:var(--card);border:2px solid #cde8d8}
+body.night .data-status{background:var(--card);border:1px solid rgba(126,242,232,.25);color:var(--text2)}
+.data-status .dot{width:10px;height:10px;border-radius:50%}
+.data-status.live .dot{background:var(--leaf);animation:blink 1.6s infinite}
+.data-status.mock .dot{background:var(--yl)}
+.data-status.offline .dot{background:#e85d4a}
+@keyframes blink{50%{opacity:.3}}
+/* ============================================================
+   板块复盘系统
+   ============================================================ */
+.sector-review{margin-top:22px;padding:18px;border-radius:var(--radius);position:relative}
+body.day .sector-review{background:var(--card);box-shadow:var(--shadow);border:3px solid var(--leaf)}
+body.night .sector-review{background:var(--card);border:1px solid rgba(78,238,234,.3);box-shadow:var(--shadow)}
+.sr-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.sr-head h2{font-size:1.2rem;font-weight:900;letter-spacing:1px}
+body.day .sr-head h2{color:var(--leaf2)}
+body.night .sr-head h2{color:var(--bubble)}
+.sr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px;margin-bottom:18px}
+.sr-card{border-radius:16px;padding:16px;position:relative;transition:transform .2s}
+.sr-card:hover{transform:translateY(-3px)}
+.sr-card .sr-title{font-size:.9rem;font-weight:900;margin-bottom:12px;padding-bottom:8px;border-bottom:2px dashed;letter-spacing:1px}
+.sr-card.sr-in{--accent:#2ec76e}
+.sr-card.sr-out{--accent:#ff7a59}
+.sr-card.sr-rise{--accent:#e85d4a}
+.sr-card.sr-fall{--accent:#00a878}
+body.day .sr-card{background:rgba(255,255,255,.7);border:2px solid var(--accent)}
+body.night .sr-card{background:rgba(6,45,62,.6);border:1px solid var(--accent)}
+.sr-table{display:flex;flex-direction:column;gap:6px}
+.sr-row{display:flex;justify-content:space-between;align-items:center;padding:7px 4px;border-bottom:1px dashed;font-size:.88rem}
+body.day .sr-row{border-color:#cde8d8}
+body.night .sr-row{border-color:rgba(126,242,232,.12)}
+.sr-row:last-child{border-bottom:none}
+.sr-row .rank{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;flex-shrink:0;margin-right:8px}
+body.day .sr-row .rank{background:var(--yl);color:#1d3a2a}
+body.night .sr-row .rank{background:rgba(255,209,102,.25);color:var(--fish)}
+.sr-row .name{font-weight:800;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-row .chg{font-family:var(--font-num);font-weight:800;margin-right:8px;flex-shrink:0}
+.sr-row .amt{font-family:var(--font-num);font-size:.82rem;flex-shrink:0}
+.sr-row .amt.up{color:#e85d4a}
+.sr-row .amt.dn{color:#2ec76e}
+body.night .sr-row .amt.up{color:#ff8f7a}
+body.night .sr-row .amt.dn{color:#7ef2e8}
+.sr-row .core{font-size:.72rem;opacity:.65;max-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+/* 历史走势图 */
+.sr-history{margin-top:18px;padding:16px;border-radius:16px}
+body.day .sr-history{background:rgba(46,199,110,.06);border:2px dashed rgba(31,165,90,.3)}
+body.night .sr-history{background:rgba(78,238,234,.04);border:1px dashed rgba(78,238,234,.2)}
+.sr-history .sr-title{font-size:.95rem;font-weight:900;margin-bottom:12px}
+body.day .sr-history .sr-title{color:var(--leaf2)}
+body.night .sr-history .sr-title{color:var(--bubble)}
+.sr-chart-wrap{position:relative;min-height:180px}
+.sr-chart-empty{display:flex;align-items:center;justify-content:center;min-height:180px;font-size:.85rem;opacity:.6;text-align:center;padding:20px}
+.sr-chart-svg{width:100%;height:220px}
+.sr-legend{display:flex;justify-content:center;gap:16px;margin-top:10px;flex-wrap:wrap}
+.sr-legend-item{display:flex;align-items:center;gap:6px;font-size:.75rem;font-weight:700}
+.sr-legend-dot{width:10px;height:10px;border-radius:50%}
+
+.foot{display:flex;justify-content:space-between;margin-top:16px;font-size:.85rem;font-weight:700;flex-wrap:wrap;gap:8px}
+body.day .foot{color:var(--snow);text-shadow:1px 1px 0 var(--leaf2)}
+body.night .foot{color:var(--text2)}
+/* 宽屏 / 准4K 适配：市场全景6项一行排开、板块复盘4卡一行 */
+@media(min-width:1000px){
+  .market-stats{grid-template-columns:repeat(6,1fr)}
+}
+@media(min-width:1400px){
+  .sr-grid{grid-template-columns:repeat(4,1fr)}
+}
+/* 响应式 */
+@media(max-width:640px){
+  :root{font-size:16.5px}
+  .temp-num{font-size:3rem}
+  .top h1{font-size:1.35rem}
+}
+</style>
+</head>
+<body class="day">
+<!-- 夜间游鱼装饰 -->
+<div class="fish-deco f1">🐠</div>
+<div class="fish-deco f2">🐟</div>
+<div class="fish-deco f3">🐡</div>
+
+<div class="beach">
+  <!-- ===== 顶栏 ===== -->
+  <header class="top">
+    <h1><span id="titleEmoji">🏖️</span> 波段沙滩监控站</h1>
+    <div class="top-controls">
+      <span class="badge" id="modeBadge">☀️ 白天 · 热带沙滩</span>
+      <div class="mode-switch" id="modeSwitch" title="切换 日/夜 模式">
+        <div class="knob"></div><span>☀️</span><span>🌊</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== 早盘数据（优先自动获取 + 手动兜底） ===== -->
+  <section class="input-panel">
+    <div class="sec-title">📝 早盘数据 <span class="hint" style="font-size:.8rem;font-weight:400;opacity:.7">(自动获取 · 每日 9:25-9:45)</span></div>
+
+    <!-- 主操作：获取早盘数据（自动计算温度） -->
+    <div class="input-row">
+      <div class="field calc-btn" style="justify-content:center">
+        <button class="btn primary" id="fetchBtn" style="font-size:1.1rem;padding:14px 34px">📥 获取早盘数据</button>
+      </div>
+    </div>
+    <div class="fetch-status" id="fetchStatus">⏳ 页面加载后自动获取...</div>
+
+    <!-- 手动输入兜底（自动获取失败时展开） -->
+    <div class="manual-zone" id="manualZone" style="display:none">
+      <div class="manual-title">✍️ 手动输入（自动获取失败时使用）</div>
+      <div class="input-row">
+        <div class="field">
+          <label for="inUp">📈 上涨家数</label>
+          <input type="number" id="inUp" placeholder="如 3245" min="0" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="inDown">📉 下跌家数</label>
+          <input type="number" id="inDown" placeholder="如 1809" min="0" inputmode="numeric">
+        </div>
+        <div class="field calc-btn">
+          <label>&nbsp;</label>
+          <button class="btn primary" id="calcBtn">🌡️ 手动计算</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="calc-note">
+      早盘检测窗口：09:25 — 09:45 · 自动获取市场数据计算温度
+    </div>
+  </section>
+
+  <!-- ===== 温度仪表 ===== -->
+  <section class="temp-card">
+    <div class="temp-main">
+      <div class="temp-emoji" id="tempEmoji">🫧</div>
+      <div class="temp-num-wrap">
+        <div class="temp-num" id="tempNum">--</div>
+        <div class="temp-label">市场温度系数</div>
+      </div>
+      <div class="temp-num-wrap" style="display:none">
+        <div class="temp-num" id="tempNum2" style="font-size:clamp(1.2rem,3vw,1.8rem)"></div>
+        <div class="temp-label" id="tempFormula"></div>
+      </div>
+    </div>
+    <div id="tempVerdictWrap">
+      <div class="temp-verdict warn" id="tempVerdict">等待录入早盘数据...</div>
+    </div>
+    <div class="temp-track">
+      <!-- 白天专属：海浪 SVG 动画 -->
+      <svg class="day-wave" viewBox="0 0 100 36" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path id="dayWave1" fill="rgba(255,255,255,.45)" d="M0,18 Q25,8 50,18 T100,18 V36 H0 Z">
+          <animate attributeName="d" dur="3s" repeatCount="indefinite"
+            values="M0,18 Q25,8 50,18 T100,18 V36 H0 Z;M0,18 Q25,28 50,18 T100,18 V36 H0 Z;M0,18 Q25,8 50,18 T100,18 V36 H0 Z"/>
+        </path>
+        <path id="dayWave2" fill="rgba(255,255,255,.3)" d="M0,22 Q25,14 50,22 T100,22 V36 H0 Z">
+          <animate attributeName="d" dur="4s" repeatCount="indefinite"
+            values="M0,22 Q25,14 50,22 T100,22 V36 H0 Z;M0,22 Q25,32 50,22 T100,22 V36 H0 Z;M0,22 Q25,14 50,22 T100,22 V36 H0 Z"/>
+        </path>
+      </svg>
+      <!-- 夜间专属：深海气泡浮动层 -->
+      <div class="night-deep">
+        <div class="bub-bg"></div>
+      </div>
+      <!-- 进度填充 -->
+      <div class="temp-fill" id="tempFill" style="width:0%"></div>
+      <!-- 进度文字叠加（动态显示当前百分比） -->
+      <div class="temp-pct-text" id="tempPctText">0%</div>
+      <!-- 温和区标记（1.30 - 1.50 范围 → 40% - 60%） -->
+      <div class="temp-good-marker" style="left:40%" title="温和区起点"></div>
+      <div class="temp-good-marker" style="left:60%" title="温和区终点"></div>
+    </div>
+    <div class="temp-zones"><span>低</span><span style="color:var(--leaf2)">温和区</span><span style="color:var(--leaf2)">·</span><span>高</span></div>
+    <div class="temp-rule" id="tempRule">输入上涨/下跌家数后自动计算</div>
+
+    <!-- ===== 市场数据（自动加载·新浪财经源） ===== -->
+    <div class="weather-auto" id="weatherAuto">
+      <div class="weather-head">
+        <span class="weather-city" id="weatherCity">📊 市场全景</span>
+        <span class="weather-source" id="weatherSource">数据源加载中...</span>
+      </div>
+      <div class="market-stats">
+        <div class="ms-item"><span class="ms-label">上涨</span><span class="ms-val up" id="msUp">--</span></div>
+        <div class="ms-item"><span class="ms-label">下跌</span><span class="ms-val dn" id="msDown">--</span></div>
+        <div class="ms-item"><span class="ms-label">平盘</span><span class="ms-val" id="msFlat">--</span></div>
+        <div class="ms-item"><span class="ms-label">涨停</span><span class="ms-val up" id="msLimitUp">--</span></div>
+        <div class="ms-item"><span class="ms-label">跌停</span><span class="ms-val dn" id="msLimitDn">--</span></div>
+        <div class="ms-item"><span class="ms-label">涨占比</span><span class="ms-val" id="msUpPct">--</span></div>
+      </div>
+      <div class="weather-meta" id="weatherMeta">--</div>
+      <div class="weather-error" id="weatherError" style="display:none"></div>
+    </div>
+  </section>
+
+  <!-- ===== 观察列表（多市场，通栏横排） ===== -->
+  <div class="card" style="margin-bottom:20px">
+    <h3>📈 观察列表 <span class="hint" id="idxTime">实时</span></h3>
+    <div class="idx-groups">
+      <div class="market-group">
+        <div class="mg-label">🇨🇳 A股</div>
+        <div class="kv"><span>上证指数</span><b class="up" id="iSH">--</b></div>
+        <div class="kv"><span>深证成指</span><b class="up" id="iSZ">--</b></div>
+        <div class="kv"><span>创业板指</span><b class="dn" id="iCY">--</b></div>
+        <div class="kv"><span>沪深300</span><b class="up" id="iHS">--</b></div>
+      </div>
+      <div class="market-group">
+        <div class="mg-label">🇭🇰 港股</div>
+        <div class="kv"><span>恒生指数</span><b class="up" id="hkHSI">--</b></div>
+        <div class="kv"><span>恒生科技</span><b class="up" id="hkHSTECH">--</b></div>
+        <div class="kv"><span>腾讯控股</span><b class="up" id="hkTENCENT">--</b></div>
+      </div>
+      <div class="market-group">
+        <div class="mg-label">🇺🇸 美股</div>
+        <div class="kv"><span>纳斯达克</span><b class="up" id="usIXIC">--</b></div>
+        <div class="kv"><span>标普500</span><b class="up" id="usINX">--</b></div>
+        <div class="kv"><span>道琼斯</span><b class="up" id="usDJI">--</b></div>
+        <div class="kv"><span>费城半导体</span><b class="up" id="usSOX">--</b></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 战法匹配 + 风控确认 ===== -->
+  <div class="grid">
+    <div class="card">
+      <h3>⚔️ 战法匹配 <span class="emo">🎯</span></h3>
+      <div style="font-size:1.2rem;font-weight:900;color:var(--coral)" id="stratName">--</div>
+      <div style="font-size:.95rem;margin-top:8px" id="stratDetail">--</div>
+      <div style="font-size:.9rem;font-weight:800;color:var(--leaf2);margin-top:12px" id="stratLoop">--</div>
+    </div>
+    <div class="card">
+      <h3>🛡️ 风控确认 <span class="emo">⛱️</span></h3>
+      <div class="kv"><span>风险收益比</span><b id="rrVal">--</b></div>
+      <div class="kv"><span>判定</span><b id="rrState">--</b></div>
+      <div style="font-size:.9rem;margin-top:10px" id="riskNote">--</div>
+    </div>
+  </div>
+
+  <!-- ===== 自选股管理 ===== -->
+  <div class="card" style="margin-bottom:20px">
+    <h3>🎯 关注标的 <span class="emo">🏄</span> <span class="hint" id="wlHint">可添加/搜索/删除</span></h3>
+    <div class="watch-tools">
+      <div class="watch-search">
+        <input type="text" id="watchSearch" placeholder="🔍 输入代码或名称搜索添加... (如 600519 / 茅台)" autocomplete="off">
+        <div class="search-results" id="searchResults"></div>
+      </div>
+      <button class="btn primary" id="btnClearWl" style="background:var(--sunk)">清空自选</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th style="width:70px">代码</th><th>名称</th><th style="text-align:right">现价</th><th style="text-align:right">涨跌幅</th><th style="width:46px"></th></tr></thead>
+        <tbody id="wlBody"></tbody>
+      </table>
+    </div>
+    <div class="watch-empty" id="wlEmpty" style="display:none">暂无自选股，搜索添加你想跟踪的标的 🐟</div>
+  </div>
+
+  <!-- ===== 信号判断 ===== -->
+  <div class="card" style="margin-bottom:20px">
+    <h3>⚡ 信号判断 <span class="hint">点击状态切换</span> <span class="emo">👆</span></h3>
+    <div id="sigList"></div>
+  </div>
+
+  <!-- ===== 结论 ===== -->
+  <div class="verdict">
+    <div class="big" id="vBig">--</div>
+    <div class="sub" id="vSub">--</div>
+  </div>
+
+  <!-- ===== 板块复盘系统 ===== -->
+  <div class="sector-review">
+    <div class="sr-head">
+      <h2>📊 板块复盘</h2>
+      <span class="hint" id="srTime">数据加载中...</span>
+    </div>
+
+    <!-- 4 个榜单：净流入/净流出/涨幅/跌幅 前五 -->
+    <div class="sr-grid">
+      <div class="sr-card sr-in">
+        <div class="sr-title">💰 主力净流入 TOP 5</div>
+        <div class="sr-table" id="srTopIn"></div>
+      </div>
+      <div class="sr-card sr-out">
+        <div class="sr-title">💸 主力净流出 TOP 5</div>
+        <div class="sr-table" id="srTopOut"></div>
+      </div>
+      <div class="sr-card sr-rise">
+        <div class="sr-title">📈 涨幅 TOP 5</div>
+        <div class="sr-table" id="srTopRise"></div>
+      </div>
+      <div class="sr-card sr-fall">
+        <div class="sr-title">📉 跌幅 TOP 5</div>
+        <div class="sr-table" id="srTopFall"></div>
+      </div>
+    </div>
+
+    <!-- 历史走势（近5-10日） -->
+    <div class="sr-history">
+      <div class="sr-title">📉 近10日市场温度 & 板块热点回顾</div>
+      <div class="sr-chart-wrap" id="srChart">
+        <div class="sr-chart-empty" id="srChartEmpty">历史快照积累中...（每日收盘自动追加，累积 5-10 天后显示走势）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 数据状态 + 页脚 ===== -->
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+    <span class="data-status mock" id="dataStatus"><span class="dot"></span><span id="dataStatusText">数据源加载中...</span></span>
+    <span class="data-status" style="border:none;background:transparent;padding:0;font-size:.8rem" id="updTime">--</span>
+  </div>
+  <footer class="foot">
+    <span>🌴 波段海滩 · 每日09:25涨潮检测</span>
+    <span>📡 数据源：新浪hq + AKShare</span>
+    <span>3570下海 · 3221上岸</span>
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   数据引擎：优先读 data.json（真实数据），失败回退内置模拟
+   ============================================================ */
+const DataEngine = {
+  realData: null,
+  pool: [],
+  watchlistCodes: [],
+  apiBase: null,          // 预留：真实后端 API 地址
+  endpoints: {
+    breadth: null,        // 涨跌家数
+    indices: null,        // 指数
+    watchlist: null,      // 自选行情
+    search: null          // 股票搜索
+  },
+  connect(baseUrl) {      // 预留：接入自定义后端
+    this.apiBase = baseUrl;
+    this.endpoints = {
+      breadth: baseUrl + '/market/breadth',
+      indices: baseUrl + '/market/indices',
+      watchlist: baseUrl + '/watchlist',
+      search: baseUrl + '/search?q='
+    };
+  },
+
+  async loadReal() {
+    try {
+      const res = await fetch('data.json', { cache: 'no-store' });
+      if (!res.ok) throw new Error('data.json 不存在');
+      const data = await res.json();
+      this.realData = data;
+      this.pool = data.stockPool || [];
+      return true;
+    } catch (e) {
+      console.warn('[数据源] 未找到 data.json，使用内置模拟数据', e);
+      return false;
+    }
+  },
+
+  mock() {
+    const up = 2850 + Math.floor(Math.random() * 600);
+    const dn = 1600 + Math.floor(Math.random() * 400);
+    const flat = Math.max(0, 5320 - up - dn);
+    const t = +(up - dn) / dn;
+    return {
+      marketBreadth: { up, down: dn, flat, temperature: +t.toFixed(4) },
+      indices: [
+        { key: 'iSH', name: '上证指数', price: 3832, changePct: 0.72 },
+        { key: 'iSZ', name: '深证成指', price: 13578, changePct: 2.21 },
+        { key: 'iCY', name: '创业板指', price: 3343, changePct: 3.06 },
+        { key: 'iHS', name: '沪深300', price: 4588, changePct: 0.85 },
+        { key: 'hkHSI', name: '恒生指数', price: 25987, changePct: 0.48 },
+        { key: 'hkHSTECH', name: '恒生科技', price: 4862, changePct: 0.96 },
+        { key: 'hkTENCENT', name: '腾讯控股', price: 482, changePct: 3.20 },
+        { key: 'usIXIC', name: '纳斯达克', price: 25374, changePct: 1.00 },
+        { key: 'usINX', name: '标普500', price: 7490, changePct: 0.70 },
+        { key: 'usDJI', name: '道琼斯', price: 52485, changePct: 0.53 },
+        { key: 'usSOX', name: '费城半导体', price: 505, changePct: 0.07 }
+      ]
+    };
+  },
+
+  getIndices() { return this.realData?.indices || this.mock().indices; },
+  getBreadth() { return this.realData?.marketBreadth || null; }
+};
+
+/* ============================================================
+   市场数据自动加载器（股票市场温度 + 涨跌家数 + 指数）
+   ------------------------------------------------------------
+   数据源（2026-08 实测可用，AKShare 新浪财经源，免费无需 token）：
+   1) 市场活跃度（涨跌家数核心）：
+      ak.stock_market_activity_legu()  → 乐咕乐股(新浪系)
+      返回: 上涨/下跌/平盘/涨停/跌停/活跃度/统计日期
+   2) 大盘指数：ak.stock_zh_index_spot_sina() → 新浪财经
+   3) A股全量行情：ak.stock_zh_a_spot() → 新浪财经(5534只，作自选股/股票池)
+   生成方式：运行 fetch_market_data.py → 写入 data.json
+   前端策略：优先读 data.json（真实数据），文件缺失时回退内置模拟。
+   ============================================================ */
+const MarketConfig = {
+  /* 刷新间隔（毫秒）：定时自动刷新周期，可在此修改 */
+  refreshInterval: 60 * 1000,        // 默认 60 秒
+  /* 请求超时（毫秒） */
+  timeout: 10000,
+  /* 数据文件路径（由 fetch_market_data.py 生成） */
+  dataFile: 'data.json'
+};
+
+const MarketAutoLoader = {
+  config: MarketConfig,
+  _timer: null,          // 定时器句柄
+  _seq: 0,               // 请求序号（防竞态：仅接受最新一次请求的结果）
+
+  /* 启动：立即加载 + 启动定时刷新 */
+  start() {
+    this.fetch();
+    this._timer = setInterval(() => this.fetch(), this.config.refreshInterval);
+    console.log(`[市场数据] 自动刷新已启动，间隔 ${this.config.refreshInterval / 1000}s`);
+  },
+
+  stop() {
+    if (this._timer) { clearInterval(this._timer); this._timer = null; }
+  },
+
+  /* 手动立即刷新（页面/区域刷新时调用） */
+  refresh() { this.fetch(); },
+
+  /* 核心：加载 data.json → 解析 → 渲染；失败回退模拟 */
+  async fetch() {
+    const seq = ++this._seq;
+    this._setLoading();
+    try {
+      const res = await fetch(this.config.dataFile, { cache: 'no-store' });
+      if (!res.ok) throw new Error('data.json 不存在(HTTP ' + res.status + ')');
+      const data = await res.json();
+      if (seq !== this._seq) return;  // 竞态保护
+      this._render(data);
+    } catch (e) {
+      console.warn('[市场数据] 加载失败:', e.message);
+      if (seq === this._seq) this._renderFallback(e.message);
+    }
+  },
+
+  /* ---- 渲染：市场全景 + 温度自动计算 ---- */
+  _render(data) {
+    const b = data.marketBreadth;
+    if (!b) throw new Error('marketBreadth 字段缺失');
+
+    // 1) 市场全景统计
+    document.getElementById('msUp').textContent = b.up?.toLocaleString() ?? '--';
+    document.getElementById('msDown').textContent = b.down?.toLocaleString() ?? '--';
+    document.getElementById('msFlat').textContent = b.flat?.toLocaleString() ?? '--';
+    document.getElementById('msLimitUp').textContent = b.limitUp ?? '--';
+    document.getElementById('msLimitDn').textContent = b.limitDown ?? '--';
+    document.getElementById('msUpPct').textContent = (b.upPct ?? '--') + '%';
+
+    // 2) 温度自动计算（严格公式：温度 = (涨-跌)/跌）并填充输入框
+    if (b.up && b.down && b.down > 0 && !b.manualInput) {
+      document.getElementById('inUp').value = b.up;
+      document.getElementById('inDown').value = b.down;
+      if (typeof UI !== 'undefined' && UI.calcTemperature) UI.calcTemperature();
+      // 自动获取成功：隐藏手动输入兜底
+      this._setFetchStatus('success', '✓ 自动获取成功：上涨 ' + b.up + ' / 下跌 ' + b.down);
+      this._toggleManualZone(false);
+    } else {
+      this._setFetchStatus('success', '✓ 数据已就绪（手动模式）');
+      this._toggleManualZone(true);
+    }
+
+    // 3) 元信息
+    const meta = [
+      b.statDate ? '统计 ' + b.statDate : '',
+      b.activity ? '活跃度 ' + b.activity : '',
+      data.timestamp ? '更新 ' + data.timestamp : ''
+    ].filter(Boolean).join(' · ');
+    document.getElementById('weatherMeta').textContent = meta || '实时数据';
+    document.getElementById('weatherError').style.display = 'none';
+    this._setSourceTag(b.source || data.source || 'data.json', false);
+
+    // 4) 同步数据状态标签（顶部）
+    if (typeof UI !== 'undefined' && UI.setDataStatus) {
+      UI.setDataStatus('live');
+    }
+
+    // 4) 同步指数
+    if (data.indices && typeof UI !== 'undefined' && UI.renderIndices) {
+      DataEngine.realData = data;
+      DataEngine.pool = data.stockPool || [];   // 同步股票池（供自选搜索）
+      UI.renderIndices();
+      UI.renderWatchlist();
+    }
+
+    // 5) 板块复盘渲染
+    if (data.sectorReview) {
+      SectorReviewRenderer.render(data.sectorReview);
+      document.getElementById('srTime').textContent = '数据更新：' + (data.timestamp || '—');
+    } else {
+      SectorReviewRenderer.showEmpty('板块复盘数据不可用（运行 fetch_market_data.py 获取）');
+    }
+  },
+
+  /* 加载失败：展示默认值 + 友好提示 + 展开手动输入兜底 */
+  _renderFallback(errMsg) {
+    ['msUp','msDown','msFlat','msLimitUp','msLimitDn','msUpPct'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.textContent = '--';
+    });
+    document.getElementById('weatherMeta').textContent = '使用默认值（无自动刷新）';
+    const el = document.getElementById('weatherError');
+    el.style.display = 'block';
+    el.textContent = '⚠️ 市场数据获取失败：' + (errMsg || '未知错误') + '。已展开手动输入，可自行填写涨跌家数计算温度。';
+    this._setSourceTag('', 'error');
+    this._setFetchStatus('error', '⚠️ 自动获取失败：' + (errMsg || '未知错误'));
+    this._toggleManualZone(true);
+  },
+
+  /* 加载中状态 */
+  _setLoading() {
+    document.getElementById('weatherError').style.display = 'none';
+    this._setSourceTag('', '');
+    this._setFetchStatus('loading', '⏳ 正在获取早盘数据...');
+    this._toggleManualZone(false);
+  },
+
+  /* 获取状态提示（fetchStatus 元素） */
+  _setFetchStatus(state, msg) {
+    const el = document.getElementById('fetchStatus');
+    if (!el) return;
+    el.className = 'fetch-status ' + state;
+    el.textContent = msg;
+  },
+
+  /* 切换手动输入区显隐 */
+  _toggleManualZone(show) {
+    const zone = document.getElementById('manualZone');
+    if (zone) zone.style.display = show ? 'block' : 'none';
+  },
+
+  /* 数据源标签状态 */
+  _setSourceTag(srcName, state) {
+    const el = document.getElementById('weatherSource');
+    const dot = el.querySelector('.src-dot') || document.createElement('span');
+    if (!dot.classList.contains('src-dot')) { dot.className = 'src-dot'; el.prepend(dot); }
+    el.classList.remove('live', 'fallback', 'error');
+    if (state === 'error') { el.classList.add('error'); el.textContent = '接口异常'; }
+    else if (srcName) { el.classList.add('live'); el.textContent = srcName + ' · 自动刷新'; }
+    else { el.classList.add('fallback'); el.textContent = '加载中...'; }
+  }
+};
+
+/* ============================================================
+   板块复盘渲染器
+   ============================================================ */
+const SectorReviewRenderer = {
+  /* 渲染 4 个榜单 + 历史走势图 */
+  render(sr) {
+    this._renderTable('srTopIn', sr.topIn, 'up');
+    this._renderTable('srTopOut', sr.topOut, 'dn');
+    this._renderTable('srTopRise', sr.topRise, 'up');
+    this._renderTable('srTopFall', sr.topFall, 'dn');
+    this._renderHistory();
+  },
+
+  /* 榜单渲染（5 行） */
+  _renderTable(elId, list, dir) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (!list || list.length === 0) {
+      el.innerHTML = '<div class="sr-row" style="justify-content:center;opacity:.6;font-size:.8rem;padding:14px 0">暂无数据</div>';
+      return;
+    }
+    el.innerHTML = list.map((s, i) => {
+      const chgCls = s.涨幅 >= 0 ? 'up' : 'dn';
+      const amtCls = s.主力净额 >= 0 ? 'up' : 'dn';
+      const chg = (s.涨幅 >= 0 ? '+' : '') + s.涨幅.toFixed(2) + '%';
+      const amt = (s.主力净额 >= 0 ? '+' : '') + s.主力净额.toFixed(2) + '亿';
+      return `<div class="sr-row">
+        <span class="rank">${i + 1}</span>
+        <span class="name">${s.板块}</span>
+        <span class="chg ${chgCls}">${chg}</span>
+        <span class="amt ${amtCls}">${amt}</span>
+        <span class="core" title="${s.核心个股}">${s.核心个股}</span>
+      </div>`;
+    }).join('');
+  },
+
+  /* 历史走势图（SVG 折线图：近10日温度 + 板块热点） */
+  _renderHistory() {
+    fetch('daily_snapshots.json', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : Promise.reject('无快照'))
+      .then(snaps => {
+        if (!snaps || snaps.length < 2) {
+          document.getElementById('srChartEmpty').textContent = `快照不足（当前 ${snaps?.length || 0} 条），需累积 2 条以上才能绘制走势图`;
+          return;
+        }
+        this._drawChart(snaps);
+      })
+      .catch(() => {
+        document.getElementById('srChartEmpty').textContent = '暂无历史快照（daily_snapshots.json 不存在）';
+      });
+  },
+
+  /* SVG 折线图绘制 */
+  _drawChart(snaps) {
+    const wrap = document.getElementById('srChart');
+    const empty = document.getElementById('srChartEmpty');
+    if (empty) empty.style.display = 'none';
+
+    const W = 560, H = 220, pad = { top: 16, right: 20, bottom: 36, left: 44 };
+    const cw = W - pad.left - pad.right, ch = H - pad.top - pad.bottom;
+    const temps = snaps.map(s => s.temperature ?? 0);
+    const minT = Math.min(...temps, 0), maxT = Math.max(...temps, 2.5);
+    const span = maxT - minT || 1;
+    const x = i => pad.left + (i / Math.max(snaps.length - 1, 1)) * cw;
+    const y = v => pad.top + ch - ((v - minT) / span) * ch;
+
+    // 温和区间（1.30-1.50）阴影带
+    const zoneY1 = y(1.5), zoneY2 = y(1.3);
+    const zoneH = zoneY2 - zoneY1;
+
+    const pts = snaps.map((s, i) => `${x(i)},${y(s.temperature ?? 0)}`).join(' ');
+    const areaPts = pts + ` ${x(snaps.length - 1)},${y(minT)} ${x(0)},${y(minT)}`;
+
+    let svg = `<svg class="sr-chart-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+    // 网格
+    for (let g = 0; g <= 4; g++) {
+      const gy = pad.top + (g / 4) * ch;
+      svg += `<line x1="${pad.left}" y1="${gy}" x2="${W - pad.right}" y2="${gy}" stroke="currentColor" stroke-width="0.5" opacity="0.15"/>`;
+    }
+    // 温和区
+    svg += `<rect x="${pad.left}" y="${zoneY1}" width="${cw}" height="${Math.abs(zoneH)}" fill="rgba(46,199,110,.12)" rx="4"/>`;
+    svg += `<text x="${pad.left + 6}" y="${zoneY1 + 14}" font-size="10" fill="var(--leaf2,#2ec76e)" opacity="0.7">温和区 1.30-1.50</text>`;
+    // 面积
+    svg += `<polygon points="${areaPts}" fill="rgba(255,122,89,.12)"/>`;
+    // 折线
+    svg += `<polyline points="${pts}" fill="none" stroke="#ff7a59" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    // 数据点
+    snaps.forEach((s, i) => {
+      const cx = x(i), cy = y(s.temperature ?? 0);
+      svg += `<circle cx="${cx}" cy="${cy}" r="4.5" fill="#ff7a59" stroke="#fff" stroke-width="1.5"/>`;
+      // 日期标签（每隔2个）
+      if (snaps.length <= 5 || i % 2 === 0) {
+        svg += `<text x="${cx}" y="${H - pad.bottom + 16}" font-size="9" text-anchor="middle" fill="currentColor" opacity="0.6">${s.date.slice(5)}</text>`;
+      }
+    });
+    svg += `</svg>`;
+
+    wrap.innerHTML = svg + `
+      <div class="sr-legend">
+        <span class="sr-legend-item"><span class="sr-legend-dot" style="background:#ff7a59"></span>市场温度系数</span>
+        <span class="sr-legend-item"><span class="sr-legend-dot" style="background:rgba(46,199,110,.5)"></span>温和区（波段最佳）</span>
+      </div>`;
+  },
+
+  /* 数据不可用 */
+  showEmpty(msg) {
+    ['srTopIn','srTopOut','srTopRise','srTopFall'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = `<div class="sr-row" style="justify-content:center;opacity:.6;font-size:.8rem;padding:14px 0">${msg}</div>`;
+    });
+    document.getElementById('srTime').textContent = msg;
+  }
+};
+
+/* ============================================================
+   信号状态机
+   ============================================================ */
+const SignalManager = {
+  list: [
+    ['market_temp', '市场温度达标', '温度系数 1.30-1.50'],
+    ['market_trend', '大盘趋势过滤', '震荡或上升趋势，非单边下跌'],
+    ['res_market', '大盘不再创新低', '三大共振之大盘'],
+    ['res_sector', '板块不再创新低', '三大共振之板块'],
+    ['res_stock', '个股不再创新低', '三大共振之个股'],
+    ['position', '位置安全评估', '向左看齐5-20天底部区域'],
+    ['strategy', '战法匹配确认', '匹配到具体战法'],
+    ['risk', '风险收益比达标', '比值 1.50-2.25 之间']
+  ],
+/* 内部：把任意 i 归一为数字索引（支持 'market_temp' 字符串 id 或数字下标） */
+  _idx(i) {
+    if (typeof i === 'number') return i;
+    const k = this.list.findIndex(r => r[0] === i);
+    return k >= 0 ? k : -1;
+  },
+  get(i) {
+    const k = this._idx(i);
+    return (k >= 0 && this.list[k]) ? (this.list[k][3] || 'wait') : 'wait';
+  },
+  set(i, v) {
+    const k = this._idx(i);
+    if (k < 0) { console.warn('SignalManager.set 未知 id:', i); return; }
+    this.list[k][3] = v;
+    UI.renderSignals();
+  },
+  cycle(i) {
+    const o = ['wait', 'buy', 'sell'];
+    this.set(i, o[(o.indexOf(this.get(i)) + 1) % 3]);
+  }
+};
+
+/* ============================================================
+   自选股管理（localStorage 持久化）
+   ============================================================ */
+const Watchlist = {
+  KEY: 'bw_tropical_watchlist',
+  load() { try { return JSON.parse(localStorage.getItem(this.KEY)) || []; } catch { return []; } },
+  save(list) { localStorage.setItem(this.KEY, JSON.stringify(list)); },
+  add(code) {
+    const list = this.load();
+    if (!list.includes(code)) { list.push(code); this.save(list); }
+    return list;
+  },
+  remove(code) {
+    const list = this.load().filter(c => c !== code);
+    this.save(list);
+    return list;
+  },
+  clear() { localStorage.removeItem(this.KEY); return []; }
+};
+
+/* ============================================================
+   UI 渲染
+   ============================================================ */
+const UI = {
+  /* ---- 主题切换（白天=热带 / 夜间=潜水摸鱼） ---- */
+  setMode(mode) {
+    document.body.className = mode;
+    document.getElementById('modeBadge').textContent = mode === 'day' ? '☀️ 白天 · 热带沙滩' : '🌊 夜间 · 潜水摸鱼';
+    document.getElementById('titleEmoji').textContent = mode === 'day' ? '🏖️' : '🤿';
+    localStorage.setItem('bw_tropical_mode', mode);
+  },
+
+  /* ---- 温度计算（严格公式） ---- */
+  calcTemperature() {
+    const up = parseInt(document.getElementById('inUp').value);
+    const dn = parseInt(document.getElementById('inDown').value);
+    if (!up || !dn || dn === 0) {
+      this.showToast('请填写有效的上涨/下跌家数', 'warn');
+      return;
+    }
+    const temp = (up - dn) / dn;
+    const tempEl = document.getElementById('tempNum');
+    tempEl.textContent = temp.toFixed(2);
+    document.getElementById('tempFormula').textContent = `(${up} − ${dn}) ÷ ${dn} = ${temp.toFixed(4)}`;
+
+    // 填充条：满刻度 2.5（背景色由主题CSS自动联动，不再覆盖）
+    const pct = Math.min(temp / 2.5 * 100, 100);
+    const fill = document.getElementById('tempFill');
+    fill.style.width = pct + '%';
+    // 进度文字叠加
+    const pctText = document.getElementById('tempPctText');
+    if (pctText) pctText.textContent = pct.toFixed(0) + '%';
+
+    // 判定
+    const verdict = document.getElementById('tempVerdict');
+    const emoji = document.getElementById('tempEmoji');
+    const rule = document.getElementById('tempRule');
+    if (temp >= 1.3 && temp <= 1.5) {
+      verdict.textContent = '🌊 温和上涨 · 波段最佳环境 ✅';
+      verdict.className = 'temp-verdict good';
+      emoji.textContent = '🏄';
+      rule.textContent = '温和上涨：做波段的最佳环境，可执行 3570 建仓。';
+      SignalManager.set('market_temp', 'buy');
+    } else if (temp < 1.3) {
+      verdict.textContent = '🫧 热度不足 · 建议观望';
+      verdict.className = 'temp-verdict warn';
+      emoji.textContent = '🐢';
+      rule.textContent = '温度低于 1.30：市场不够活跃，一票否决，放弃交易。';
+      SignalManager.set('market_temp', 'wait');
+    } else {
+      verdict.textContent = '🔥 过热 · 警惕追高';
+      verdict.className = 'temp-verdict';
+      emoji.textContent = '🦈';
+      rule.textContent = '温度高于 1.50：市场过热，警惕冲顶回落，暂缓进场。';
+      SignalManager.set('market_temp', 'wait');
+    }
+    this.renderStrategy(temp);
+    // 手动计算成功：收起手动区，标记数据已就绪
+    if (typeof MarketAutoLoader !== 'undefined') {
+      MarketAutoLoader._toggleManualZone(false);
+      MarketAutoLoader._setFetchStatus('success', '✓ 已按手动输入计算温度');
+    }
+  },
+
+  /* ---- 战法 & 风控联动 ---- */
+  renderStrategy(temp) {
+    const ok = temp >= 1.3 && temp <= 1.5;
+    document.getElementById('stratName').textContent = ok ? '上升趋势打法' : '等待环境';
+    document.getElementById('stratDetail').textContent = ok ? '买点：第一次回踩10日均线' : '温度未达温和区间(1.30-1.50)';
+    document.getElementById('stratLoop').textContent = ok ? '3570建仓 → 3221止盈' : '一票否决，今日休渔';
+    document.getElementById('rrVal').textContent = '1.85' + (ok ? ' ✓' : ' …');
+    document.getElementById('rrState').textContent = ok ? '1.50-2.25 区间内' : '等待';
+    document.getElementById('riskNote').textContent = ok ? '允许进场，执行交易闭环' : '放弃交易，等待明日检测';
+    document.getElementById('vBig').textContent = ok ? '下海冲浪！🏄' : (temp === null || isNaN(temp) ? '等待数据' : '岸边躺平！🐢');
+    document.getElementById('vSub').textContent = ok ? '温度温和、共振齐备，回踩10日线的标的可上，3570进场！' : '温度未达标，一票否决，今天晒晒太阳/潜潜水，明天再看！';
+  },
+
+  /* ---- 指数渲染 ---- */
+  renderIndices() {
+    const indices = DataEngine.getIndices();
+    indices.forEach(idx => {
+      const el = document.getElementById(idx.key);
+      if (!el) return;
+      const sign = idx.changePct >= 0 ? '+' : '';
+      el.textContent = idx.price.toFixed(2) + '  ' + sign + idx.changePct + '%';
+      el.className = idx.changePct >= 0 ? 'up' : 'dn';
+    });
+    if (DataEngine.realData?.timestamp) {
+      document.getElementById('idxTime').textContent = '行情 ' + DataEngine.realData.timestamp.slice(5, 16);
+    }
+  },
+
+  /* ---- 自选股渲染（含删除） ----
+     行情合并：data.json.watchlist（脚本默认池）+ data.json.stockPool（全A 5534只）
+     这样用户添加任何股票都能查到实时价格/涨跌幅 */
+  renderWatchlist() {
+    const body = document.getElementById('wlBody');
+    const empty = document.getElementById('wlEmpty');
+    const list = Watchlist.load();
+    const quotes = {};   // 合并行情：脚本默认池 + 全A池
+    (DataEngine.realData?.watchlist || []).forEach(w => quotes[w.code] = w);
+    // 全 A 池自带最新价/涨跌幅，直接覆盖（更实时）
+    (DataEngine.realData?.stockPool || DataEngine.pool || []).forEach(p => {
+      quotes[p.code] = { code: p.code, name: p.name,
+        price: p.price, changePct: p.changePct };
+    });
+    const poolMap = {};
+    (DataEngine.realData?.stockPool || DataEngine.pool || []).forEach(p => poolMap[p.code] = p.name);
+
+    if (list.length === 0) { empty.style.display = 'block'; body.innerHTML = ''; return; }
+    empty.style.display = 'none';
+
+    body.innerHTML = list.map(code => {
+      const q = quotes[code];
+      const name = q?.name || poolMap[code] || code;
+      const price = q?.price ?? '--';
+      const chg = q?.changePct ?? null;
+      const chgStr = chg === null ? '--' : (chg >= 0 ? '+' : '') + chg + '%';
+      const chgCls = chg === null ? '' : (chg >= 0 ? 'up' : 'dn');
+      const isPending = !q;   // 标记暂无行情的项
+      return `<tr class="watch-item ${isPending ? 'pending' : ''}">
+        <td class="w-code">${code}</td>
+        <td class="w-name">${name}</td>
+        <td style="text-align:right"><span class="w-quote p">${price}</span></td>
+        <td style="text-align:right"><span class="w-quote c ${chgCls}">${chgStr}</span></td>
+        <td style="text-align:center;width:46px"><button class="del-btn" onclick="UI.removeWatch('${code}')" title="删除">✕</button></td>
+      </tr>`;
+    }).join('');
+  },
+
+  removeWatch(code) {
+    Watchlist.remove(code);
+    this.renderWatchlist();
+    this.showToast('已移除自选：' + code, 'ok');
+  },
+
+  /* ---- 搜索 & 添加 ---- */
+  setupSearch() {
+    const input = document.getElementById('watchSearch');
+    const results = document.getElementById('searchResults');
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      if (!q) { results.classList.remove('show'); results.innerHTML = ''; return; }
+      const hits = DataEngine.pool.filter(p =>
+        p.code.includes(q) || (p.name && p.name.toLowerCase().includes(q))
+      ).slice(0, 12);
+      const added = Watchlist.load();
+      results.innerHTML = hits.length ? hits.map(p => {
+        const inList = added.includes(p.code);
+        return `<div class="sr-item" onclick="UI.addWatch('${p.code}','${p.name}')">
+          <span><b>${p.code}</b> ${p.name}</span>
+          <span class="add">${inList ? '✓ 已添加' : '+ 添加'}</span>
+        </div>`;
+      }).join('') : `<div class="sr-item"><span style="opacity:.6">未找到「${input.value}」</span></div>`;
+      results.classList.add('show');
+    });
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.watch-search')) results.classList.remove('show');
+    });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+  },
+
+  addWatch(code, name) {
+    Watchlist.add(code);
+    this.renderWatchlist();
+    document.getElementById('searchResults').classList.remove('show');
+    this.showToast('已添加自选：' + name, 'ok');
+  },
+
+  /* ---- 信号渲染 ---- */
+  renderSignals() {
+    const el = document.getElementById('sigList');
+    const L = { buy: '🟢 买入', sell: '🔴 卖出', wait: '🟡 观望' };
+    el.innerHTML = SignalManager.list.map((s, i) => `
+      <div class="sig">
+        <span class="sig-name">${s[1]}<br><small style="font-weight:400;opacity:.6;font-size:.78rem">${s[2]}</small></span>
+        <button class="${SignalManager.get(i)}" onclick="SignalManager.cycle(${i})">${L[SignalManager.get(i)]}</button>
+      </div>`).join('');
+  },
+
+  /* ---- 数据状态提示 ---- */
+  setDataStatus(type) {
+    const el = document.getElementById('dataStatus');
+    const tx = document.getElementById('dataStatusText');
+    el.className = 'data-status ' + type;
+    if (type === 'live') tx.textContent = '真实数据 · data.json (通达信)';
+    else if (type === 'mock') tx.textContent = '模拟数据 · 未找到data.json';
+    else tx.textContent = '离线模式';
+  },
+
+  /* ---- Toast ---- */
+  showToast(msg, type) {
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:999;padding:12px 26px;border-radius:50px;font-weight:800;font-size:.95rem;box-shadow:0 8px 30px rgba(0,0,0,.25);transition:all .3s;background:var(--card);color:var(--text);border:2px solid ' + (type === 'warn' ? 'var(--yl)' : 'var(--leaf)') + ';opacity:0';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => t.style.opacity = '1');
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 350); }, 2200);
+  }
+};
+
+/* ============================================================
+   APP 启动
+   ============================================================ */
+const App = {
+  async init() {
+    // 恢复模式
+    const savedMode = localStorage.getItem('bw_tropical_mode') || 'day';
+    UI.setMode(savedMode);
+
+    // 初始化界面（指数/自选股/信号初始渲染由 MarketAutoLoader 加载真实数据后统一刷新）
+    UI.renderWatchlist();
+    UI.renderSignals();
+    UI.setupSearch();
+
+    // 启动市场数据自动加载（含定时刷新：涨跌家数→温度 / 指数 / 自选股）
+    MarketAutoLoader.start();
+
+    // 事件
+    // 主按钮：获取早盘数据（重新拉取 → 自动计算温度）
+    document.getElementById('fetchBtn').addEventListener('click', () => {
+      UI.showToast('📥 正在获取早盘数据...', 'ok');
+      MarketAutoLoader.refresh();
+    });
+    // 手动计算按钮：仅用于自动获取失败时的兜底
+    document.getElementById('calcBtn').addEventListener('click', () => UI.calcTemperature());
+    document.getElementById('inUp').addEventListener('keydown', e => { if (e.key === 'Enter') UI.calcTemperature(); });
+    document.getElementById('inDown').addEventListener('keydown', e => { if (e.key === 'Enter') UI.calcTemperature(); });
+    document.getElementById('modeSwitch').addEventListener('click', () => {
+      const next = document.body.className === 'day' ? 'night' : 'day';
+      UI.setMode(next);
+      UI.showToast(next === 'day' ? '☀️ 已切换：热带沙滩' : '🌊 已切换：潜水摸鱼', 'ok');
+    });
+    document.getElementById('btnClearWl').addEventListener('click', () => {
+      Watchlist.clear();
+      UI.renderWatchlist();
+      UI.showToast('已清空自选股', 'warn');
+    });
+
+    // 更新时钟
+    const upd = document.getElementById('updTime');
+    const tick = () => upd.textContent = new Date().toLocaleTimeString('zh-CN');
+    tick(); setInterval(tick, 1000);
+
+    // 60秒自动刷新指数（真实数据重读）
+    setInterval(() => {
+      DataEngine.loadReal().then(ok => {
+        UI.setDataStatus(ok ? 'live' : 'mock');
+        UI.renderIndices();
+        UI.renderWatchlist();
+      });
+    }, 60000);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => App.init());
+window.BW = { DataEngine, SignalManager, Watchlist, UI, App, MarketAutoLoader, MarketConfig, SectorReviewRenderer };
+</script>
+</body>
+</html>
