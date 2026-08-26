@@ -1,5 +1,5 @@
 {
- "timestamp": "2026-08-26 07:13:01",
+ "timestamp": "2026-08-26 07:57:48",
  "source": "sina-hq + akshare",
  "isTradingTime": false,
  "marketBreadth": {
@@ -68,7 +68,7 @@
    "name": "恒生指数",
    "market": "港股",
    "price": 25635.24,
-   "changePct": 0.74,
+   "changePct": 0.5,
    "hqCode": "rt_hkHSI"
   },
   {
@@ -76,7 +76,7 @@
    "name": "恒生科技",
    "market": "港股",
    "price": 4622.98,
-   "changePct": 1.21,
+   "changePct": 0.84,
    "hqCode": "rt_hkHSTECH"
   },
   {
@@ -84,7 +84,7 @@
    "name": "腾讯控股",
    "market": "港股",
    "price": 445.0,
-   "changePct": 1.31,
+   "changePct": 1.04,
    "hqCode": "rt_hk00700"
   },
   {
