@@ -1,5 +1,5 @@
 {
- "timestamp": "2026-09-24 10:25:28",
+ "timestamp": "2026-09-25 05:31:29",
  "source": "sina-hq + akshare",
  "isTradingTime": false,
  "marketBreadth": {
@@ -25,7 +25,7 @@
   "temperature": -0.7398,
   "upPct": 20.1,
   "downPct": 77.3,
-  "statDate": "2026-09-24",
+  "statDate": "2026-09-25",
   "limitUp": 52,
   "limitDown": 14,
   "activity": "20.76%"
@@ -67,96 +67,60 @@
    "key": "hkHSI",
    "name": "恒生指数",
    "market": "港股",
-   "price": 24649.45,
-   "changePct": -0.29,
+   "price": 24523.5,
+   "changePct": -1.45,
    "hqCode": "rt_hkHSI"
   },
   {
    "key": "hkHSTECH",
    "name": "恒生科技",
    "market": "港股",
-   "price": 4344.85,
-   "changePct": -0.41,
+   "price": 4318.17,
+   "changePct": -1.59,
    "hqCode": "rt_hkHSTECH"
   },
   {
    "key": "hkTENCENT",
    "name": "腾讯控股",
    "market": "港股",
-   "price": 435.0,
-   "changePct": -0.59,
+   "price": 433.8,
+   "changePct": -1.05,
    "hqCode": "rt_hk00700"
   },
   {
    "key": "usIXIC",
    "name": "纳斯达克",
    "market": "美股",
-   "price": 26936.04,
-   "changePct": -1.13,
+   "price": 26939.37,
+   "changePct": 0.01,
    "hqCode": "gb_ixic"
   },
   {
    "key": "usINX",
    "name": "标普500",
    "market": "美股",
-   "price": 7706.03,
-   "changePct": -0.75,
+   "price": 7704.13,
+   "changePct": -0.02,
    "hqCode": "gb_inx"
   },
   {
    "key": "usDJI",
    "name": "道琼斯",
    "market": "美股",
-   "price": 51511.59,
-   "changePct": -0.68,
+   "price": 51349.98,
+   "changePct": -0.31,
    "hqCode": "gb_dji"
   },
   {
    "key": "usSOX",
    "name": "费城半导体",
    "market": "美股",
-   "price": 565.72,
-   "changePct": -1.23,
+   "price": 566.07,
+   "changePct": 0.06,
    "hqCode": "gb_soxx"
   }
  ],
- "watchlist": [
-  {
-   "code": "600519",
-   "name": "贵州茅台",
-   "price": 1237.0,
-   "changePct": -1.14,
-   "market": "A股"
-  },
-  {
-   "code": "000858",
-   "name": "五 粮 液",
-   "price": 69.67,
-   "changePct": -0.95,
-   "market": "A股"
-  },
-  {
-   "code": "300750",
-   "name": "宁德时代",
-   "price": 293.5,
-   "changePct": -2.49,
-   "market": "A股"
-  },
-  {
-   "code": "002415",
-   "name": "海康威视",
-   "price": 32.63,
-   "changePct": -1.45,
-   "market": "A股"
-  },
-  {
-   "code": "601012",
-   "name": "隆基绿能",
-   "price": 11.04,
-   "changePct": -3.24,
-   "market": "A股"
-  }
- ],
+ "watchlist": [],
  "stockPool": [
   {
    "code": "920000",
