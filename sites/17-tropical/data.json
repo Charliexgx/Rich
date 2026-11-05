@@ -1,5 +1,5 @@
 {
- "timestamp": "2026-11-05 07:27:59",
+ "timestamp": "2026-11-05 15:40:42",
  "source": "sina-hq + akshare",
  "isTradingTime": false,
  "marketBreadth": {
@@ -68,7 +68,7 @@
    "name": "恒生指数",
    "market": "港股",
    "price": 24316.94,
-   "changePct": 3.53,
+   "changePct": 3.67,
    "hqCode": "rt_hkHSI"
   },
   {
@@ -76,7 +76,7 @@
    "name": "恒生科技",
    "market": "港股",
    "price": 3992.39,
-   "changePct": 5.28,
+   "changePct": 5.55,
    "hqCode": "rt_hkHSTECH"
   },
   {
@@ -84,39 +84,39 @@
    "name": "腾讯控股",
    "market": "港股",
    "price": 413.8,
-   "changePct": 6.62,
+   "changePct": 7.17,
    "hqCode": "rt_hk00700"
   },
   {
    "key": "usIXIC",
    "name": "纳斯达克",
    "market": "美股",
-   "price": 25736.51,
-   "changePct": 1.44,
+   "price": 24674.26,
+   "changePct": -4.13,
    "hqCode": "gb_ixic"
   },
   {
    "key": "usINX",
    "name": "标普500",
    "market": "美股",
-   "price": 7688.62,
-   "changePct": 1.58,
+   "price": 7487.49,
+   "changePct": -2.62,
    "hqCode": "gb_inx"
   },
   {
    "key": "usDJI",
    "name": "道琼斯",
    "market": "美股",
-   "price": 53356.12,
-   "changePct": 3.03,
+   "price": 52487.08,
+   "changePct": -1.63,
    "hqCode": "gb_dji"
   },
   {
    "key": "usSOX",
    "name": "费城半导体",
    "market": "美股",
-   "price": 450.41,
-   "changePct": -3.14,
+   "price": 135.97,
+   "changePct": -9.44,
    "hqCode": "gb_soxx"
   }
  ],
