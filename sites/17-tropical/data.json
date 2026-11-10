@@ -1,5 +1,5 @@
 {
- "timestamp": "2026-11-10 07:49:14",
+ "timestamp": "2026-11-10 15:48:43",
  "source": "sina-hq + akshare",
  "isTradingTime": false,
  "marketBreadth": {
@@ -68,7 +68,7 @@
    "name": "恒生指数",
    "market": "港股",
    "price": 24621.13,
-   "changePct": 0.37,
+   "changePct": 0.44,
    "hqCode": "rt_hkHSI"
   },
   {
@@ -76,7 +76,7 @@
    "name": "恒生科技",
    "market": "港股",
    "price": 4072.44,
-   "changePct": 0.98,
+   "changePct": 1.08,
    "hqCode": "rt_hkHSTECH"
   },
   {
@@ -84,43 +84,79 @@
    "name": "腾讯控股",
    "market": "港股",
    "price": 423.0,
-   "changePct": -0.34,
+   "changePct": -0.14,
    "hqCode": "rt_hk00700"
   },
   {
    "key": "usIXIC",
    "name": "纳斯达克",
    "market": "美股",
-   "price": 25253.14,
-   "changePct": 2.74,
+   "price": 25040.6,
+   "changePct": -0.84,
    "hqCode": "gb_ixic"
   },
   {
    "key": "usINX",
    "name": "标普500",
    "market": "美股",
-   "price": 7549.94,
-   "changePct": 2.35,
+   "price": 7497.49,
+   "changePct": -0.69,
    "hqCode": "gb_inx"
   },
   {
    "key": "usDJI",
    "name": "道琼斯",
    "market": "美股",
-   "price": 52389.75,
-   "changePct": 2.15,
+   "price": 52062.36,
+   "changePct": -0.62,
    "hqCode": "gb_dji"
   },
   {
    "key": "usSOX",
    "name": "费城半导体",
    "market": "美股",
-   "price": 146.76,
-   "changePct": 7.49,
+   "price": 145.58,
+   "changePct": -0.8,
    "hqCode": "gb_soxx"
   }
  ],
- "watchlist": [],
+ "watchlist": [
+  {
+   "code": "600519",
+   "name": "贵州茅台",
+   "price": 1439.0,
+   "changePct": -0.41,
+   "market": "A股"
+  },
+  {
+   "code": "000858",
+   "name": "五 粮 液",
+   "price": 74.25,
+   "changePct": -0.66,
+   "market": "A股"
+  },
+  {
+   "code": "300750",
+   "name": "宁德时代",
+   "price": 249.95,
+   "changePct": 0.53,
+   "market": "A股"
+  },
+  {
+   "code": "002415",
+   "name": "海康威视",
+   "price": 34.83,
+   "changePct": 0.46,
+   "market": "A股"
+  },
+  {
+   "code": "601012",
+   "name": "隆基绿能",
+   "price": 12.16,
+   "changePct": 1.17,
+   "market": "A股"
+  }
+ ],
  "stockPool": [],
  "sectorReview": {
   "topIn": [
